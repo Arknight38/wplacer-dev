@@ -49,7 +49,6 @@ window.addEventListener('keydown', (e) => {
 }, true);
 
 // --- Overlay UI (full-page) ---
-// --- Overlay UI (full-page) ---
 (() => {
     const on = (el, evt, fn, opts) => el && el.addEventListener(evt, fn, opts || false);
 

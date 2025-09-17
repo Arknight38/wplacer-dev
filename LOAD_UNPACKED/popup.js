@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleOverlayText = document.getElementById('toggleOverlayText');
     const autoReloadCheckbox = document.getElementById('autoReload');
     const autoClearCheckbox = document.getElementById('autoClear');
-    // Removed enableOverlayCheckbox since we're not using it in settings tab anymore
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -26,11 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set auto reload and auto clear settings (default to true if not set)
         const autoReload = result.autoReload !== undefined ? result.autoReload : true;
         const autoClear = result.autoClear !== undefined ? result.autoClear : true;
-        const enableOverlay = result.enableOverlay !== undefined ? result.enableOverlay : true;
+        const enableOverlay = result.enableOverlay !== undefined ? result.enableOverlay : false;
         
         autoReloadCheckbox.checked = autoReload;
         autoClearCheckbox.checked = autoClear;
-        // Removed enableOverlayCheckbox.checked assignment
         
         // Update toggle overlay button text based on current setting
         updateToggleOverlayButton(enableOverlay);

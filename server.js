@@ -837,9 +837,6 @@ class WPlacer {
         let skippedFilter = 0;
         let skippedSkip = 0;
 
-        // Debug info
-        console.log(`[${this.name}] Scanning pixels: template=${this.template.width}x${this.template.height}, coords=[${this.coords.join(',')}], skip=${currentSkip}, filter=${colorFilter}`);
-
         for (let y = 0; y < this.template.height; y++) {
             for (let x = 0; x < this.template.width; x++) {
                 // Skip pattern check
