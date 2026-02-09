@@ -9,6 +9,7 @@ const userForm = $('userForm');
 const scookie = $('scookie');
 const jcookie = $('jcookie');
 const submitUser = $('submitUser');
+const deleteBannedUsersBtn = $('deleteBannedUsersBtn');
 const manageUsers = $('manageUsers');
 const manageUsersTitle = $('manageUsersTitle');
 const userList = $('userList');
@@ -87,6 +88,7 @@ let templateUpdateInterval = null;
 let confirmCallback = {};
 let currentTab = 'main';
 let currentTemplate = { width: 0, height: 0, data: [] };
+let showCanvasPreview = true;
 
 
 let logsWs = null;
@@ -437,6 +439,53 @@ userForm.addEventListener('submit', async (e) => {
             userForm.reset();
             openManageUsers.click(); // Refresh the view
         }
+    } catch (error) {
+        handleError(error);
+    }
+});
+
+deleteBannedUsersBtn.addEventListener('click', async () => {
+    try {
+        const response = await axios.get('/users');
+        const users = response.data;
+        
+        const bannedUsers = Object.entries(users).filter(([id, user]) => {
+            return user.suspendedUntil && user.suspendedUntil > Date.now() + 3153600000000;
+        });
+
+        if (bannedUsers.length === 0) {
+            showMessage('No Banned Accounts', 'No permanently banned accounts were found.');
+            return;
+        }
+
+        const userListHtml = bannedUsers.map(([id, user]) => `<li>${escapeHtml(user.name)} (#${id})</li>`).join('');
+        const confirmationMessage = `
+            <p>Are you sure you want to delete the following ${bannedUsers.length} permanently banned account(s)?</p>
+            <ul style="text-align: left; max-height: 150px; overflow-y: auto;">${userListHtml}</ul>
+            <p>This action cannot be undone.</p>
+        `;
+
+        showConfirmation('Confirm Deletion', confirmationMessage, async () => {
+            let successCount = 0;
+            let failCount = 0;
+            
+            const deletionPromises = bannedUsers.map(([id, user]) => {
+                return axios.delete(`/user/${id}`)
+                    .then(() => {
+                        successCount++;
+                    })
+                    .catch(err => {
+                        failCount++;
+                        console.error(`Failed to delete user ${id}:`, err);
+                    });
+            });
+
+            await Promise.all(deletionPromises);
+
+            showMessage('Deletion Complete', `Successfully deleted ${successCount} account(s).<br>${failCount > 0 ? `Failed to delete ${failCount} account(s). Check console for details.` : ''}`);
+            openManageUsers.click(); // Refresh the user list
+        }, true);
+
     } catch (error) {
         handleError(error);
     }
@@ -1193,7 +1242,7 @@ openManageUsers.addEventListener('click', () => {
                         Droplets: <b>${droplets}</b>
                     </div>
                 </div>
-                <div class="user-actions">
+                <div class="user-card-actions">
                     <button class="delete-btn" title="Delete User"><img src="icons/remove.svg"></button>
                     <button class="info-btn" title="Get User Info"><img src="icons/code.svg"></button>
                 </div>`;
@@ -1577,12 +1626,9 @@ const createTemplateCard = (t, id) => {
     canvasContainer.appendChild(canvas);
     card.appendChild(canvasContainer);
     drawTemplate(t.template, canvas);
-    canvasContainer.style.display = window.showCanvasPreview ? '' : 'none';
+    canvasContainer.style.display = showCanvasPreview ? '' : 'none';
 
     // Move the canvas preview toggle next to Import Share Code button (topBar)
-    if (typeof window.showCanvasPreview === 'undefined') {
-        window.showCanvasPreview = true;
-    }
     // Only add once, and only if topBar exists
     setTimeout(() => {
         const topBar = document.querySelector('.template-actions-all');
@@ -1591,12 +1637,17 @@ const createTemplateCard = (t, id) => {
             previewToggleBtn.id = 'canvasPreviewToggleBtn';
             previewToggleBtn.className = 'secondary-button';
             previewToggleBtn.style.marginLeft = '10px';
-            previewToggleBtn.innerHTML = window.showCanvasPreview ? 'Disable Canvas Previews' : 'Enable Canvas Previews';
+
+            const updateBtnTextAndIcon = () => {
+                previewToggleBtn.innerHTML = `<img src="icons/manageTemplates.svg" alt=""> ${showCanvasPreview ? 'Disable' : 'Enable'} Canvas Previews`;
+            };
+            updateBtnTextAndIcon();
+
             previewToggleBtn.addEventListener('click', () => {
-                window.showCanvasPreview = !window.showCanvasPreview;
-                previewToggleBtn.innerHTML = window.showCanvasPreview ? 'Disable Canvas Previews' : 'Enable Canvas Previews';
+                showCanvasPreview = !showCanvasPreview;
+                updateBtnTextAndIcon();
                 document.querySelectorAll('.template-canvas-preview').forEach(el => {
-                    el.style.display = window.showCanvasPreview ? '' : 'none';
+                    el.style.display = showCanvasPreview ? '' : 'none';
                 });
             });
             // Insert after Import Share Code button

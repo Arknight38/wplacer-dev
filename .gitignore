@@ -12,3 +12,8 @@ bun.lock
 .DS_Store
 *.idea
 .vscode/
+AUTO_LOGIN/emails.txt
+AUTO_LOGIN/proxies.txt
+AUTO_LOGIN/data.json
+AUTO_LOGIN/backup
+AUTO_LOGIN/sessions/*
