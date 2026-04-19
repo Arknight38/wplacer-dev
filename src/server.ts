@@ -310,7 +310,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     });
   }
 
-  console.log(gradient('green', 'cyan')('✅ Graceful shutdown completed'));
+  console.log(gradient('green', 'cyan')('Graceful shutdown completed'));
   process.exit(0);
 }
 
@@ -439,7 +439,7 @@ async function startServer(): Promise<void> {
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-    console.log(gradient('green', 'yellow')('✅ Server started successfully'));
+    console.log(gradient('green', 'yellow')('Server started successfully'));
   } catch (error) {
     console.error('Failed to start server:', error);
     log('SYSTEM', 'wplacer', 'Server startup failed', error as Error);

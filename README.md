@@ -9,41 +9,76 @@
 
 A massively updated auto-drawing bot for [wplace.live](https://wplace.live/).
 
-## Features ✅
+## Features
 
--   **Simple and easy-to-use web UI:** For managing users and templates
+-   **Simple and easy-to-use web UI:** For managing users and templates with a modern React-based interface
 -   **Advanced Multi-Account System:** Run templates with multiple users simultaneously. The system intelligently prioritizes users with the most charges available to maximize efficiency.
--   **Multiple Drawing Modes:** Choose from several drawing strategies (Top to Bottom, Bottom to Top, Edges First, Color-By-Color, etc.) to optimize your approach for different templates.
--   **Automatic Upgrade Purchasing:** If enabled, the bot will automatically purchase max charge upgrades or extra charges when running out for your accounts whenever they have enough droplets.
--   **Account Status Checker:** A tool in the "Manage Users" tab allows you to quickly check if your accounts' cookies are still valid.
--   **Advanced Template Controls:** Options such as restarting, replacing a template's image, or pausing on the fly make management more flexible as well as providing you with real time updates on the template's status.
--   **Automatic Captcha (Turnstile) Token Handling:** Turnstile handling lets you babysit the bot much less
--   **Desktop Notifications:** The program will now send a desktop notification when it needs a new Turnstile token, so you don't have to constantly check the console.
+-   **Multiple Drawing Modes:** Choose from several drawing strategies (Top to Bottom, Bottom to Top, Left to Right, Right to Left, Center Out, Random) to optimize your approach for different templates
+-   **Color-By-Color Drawing:** Alternative drawing strategy that paints all pixels of one color before moving to the next
+-   **Automatic Upgrade Purchasing:** If enabled, the bot will automatically purchase max charge upgrades or extra charges when running out for your accounts whenever they have enough droplets
+-   **Account Status Checker:** A tool in the "Manage Users" tab allows you to quickly check if your accounts' cookies are still valid with parallel status checks
+-   **Advanced Template Controls:** Options such as restarting, replacing a template's image, or pausing on the fly make management more flexible as well as providing you with real time updates on the template's status
+-   **Template Share Codes:** Import/export templates using share codes with RLE compression for easy sharing
+-   **Automatic Captcha (Turnstile) Token Handling:** Turnstile handling with WebSocket support for real-time token requests and adaptive polling
+-   **Desktop Notifications:** The program will now send a desktop notification when it needs a new Turnstile token, so you don't have to constantly check the console
+-   **Proxy Support:** Configure proxies for each account with sequential or random rotation modes
+-   **Graceful Shutdown:** Proper cleanup of resources and state persistence when stopping the server
 
-## Installation and Usage 💻
+## Installation and Usage
 
 [Video Tutorial](https://www.youtube.com/watch?v=YR978U84LSY)
 
-### Requirements:
-- [Node.js and NPM](https://nodejs.org/en/download)
+### Requirements
+
+- Node.js >= 22.0.0
+- NPM >= 10.0.0
 - [Tampermonkey](https://www.tampermonkey.net/)
 - [git](https://git-scm.com/downloads) (optional, but recommended)
-### Installation:
+
+### Installation
+
 1. Download the repository using [git](https://git-scm.com/downloads) (`git clone https://github.com/luluwaffless/wplacer.git`) or download the ZIP directly from GitHub (not recommended).
-1. In the terminal, navigate to the project directory and install the dependencies with `npm i`.
-1. Install the extension on each browser window with an account you want to be used by wplacer and to automatically solve Turnstiles (CAPTCHAs) by going to the extensions page of your browser, turning on developer mode, pressing load unpacked, and then selecting the LOAD_UNPACKED folder included with wplacer.
-- If you'd like, you can change the host and port of the local server by changing the `.env` file.
-### Usage:
+2. In the terminal, navigate to the project directory and install the dependencies with `npm i`.
+3. Install the extension on each browser window with an account you want to be used by wplacer and to automatically solve Turnstiles (CAPTCHAs) by going to the extensions page of your browser, turning on developer mode, pressing load unpacked, and then selecting the LOAD_UNPACKED folder included with wplacer.
+   - If you'd like, you can change the host and port of the local server by changing the `.env` file.
+
+### Usage
+
 1. To start the bot, run `npm start` in the terminal.
-1. Open the URL printed in the console (usually `http://127.0.0.1/`) in your browser.
-1. In each browser window with the extension installed, log into your account on wplace.live. If your account does not show up in the manager after refreshing it, you can press on the extension to manually send it to wplacer.
-1. Go to the "Add Template" page to create your drawing templates.
+2. Open the URL printed in the console (usually `http://127.0.0.1/`) in your browser.
+3. In each browser window with the extension installed, log into your account on wplace.live. If your account does not show up in the manager after refreshing it, you can press on the extension to manually send it to wplacer.
+4. Go to the "Add Template" page to create your drawing templates.
    - The coordinates (`Tile X/Y`, `Pixel X/Y`) are for the top-left corner of your image. You can find these by clicking a pixel on wplace.live and inspecting the `pixel` request in the Network tab of DevTools. You can also use the [Blue Marble](https://github.com/SwingTheVine/Wplace-BlueMarble) userscript (user TamperMonkey) to see a pixel's coordinates.
    - You can assign multiple users to a single template.
-1. Finally, go to "Manage Templates" and click "Start" on any template to begin drawing.
+5. Finally, go to "Manage Templates" and click "Start" on any template to begin drawing.
    - The script will occasionally refresh one of the active bot windows on [wplace.live](https://wplace.live/). This is required to refresh the Turnstile token needed for painting.
 
-# FAQ and Common Errors 🤔
+### Development
+
+For development, you can run the backend and frontend separately with hot-reload:
+
+```bash
+# Run both backend and frontend in development mode
+npm run dev
+
+# Or run them separately
+npm run dev:backend  # Backend with tsx watch
+npm run dev:frontend # Frontend with Vite
+```
+
+Other useful commands:
+
+```bash
+npm run build        # Build TypeScript to dist/
+npm run lint         # Run ESLint
+npm run format       # Format code with Prettier
+npm test             # Run tests
+npm test:coverage    # Run tests with coverage
+```
+
+For detailed development documentation, see [docs/development.md](docs/development.md).
+
+## FAQ and Common Errors
 ### Browser:
 - **The best supported browser is Brave, which you can get here: <https://brave.com/download/>**
 - Chrome works, but is not reccomended. (zero fingerprint protection - high ban chance)
@@ -80,26 +115,55 @@ One of your modules are missing. To install them, simply use `npm i`.
 
 **We will NOT provide support for other forks of this project. Ask the respective developers.**
 
-## Notes 📝
+## Notes
 
 > [!CAUTION]
 > This bot is not affiliated with [wplace.live](https://wplace.live/) and its use may be against the site's rules. The developers are not responsible for any punishments against your accounts. Use at your own risk.
 
-### To-dos ✅
-- [x] ~~Proxy support~~
-- [x] ~~Add support for paid colors~~
-- [x] ~~Support for painting between multiple tiles~~
-- [x] ~~Easier multi-account support for one template~~
-- [x] ~~Queueing system for multi-accounts~~
+### Recent Improvements (v5.6.2)
 
-### Credits 🙏
+- **Backend Refactoring:** Server now uses structured state management with graceful shutdown
+- **Token Manager:** Complete rewrite with thread-safe locking, validation, and promise cleanup
+- **Template Manager:** Dependency injection context for better testability
+- **Extension:** Reduced from 1176 to 616 lines (47% reduction) with modular content scripts
+- **Security:** TLS verification enabled, excessive browser permissions removed
+- **Performance:** Parallel user status checks, adaptive polling, WebSocket support
+- **Frontend:** Secure cookie inputs, better settings organization, type safety improvements
 
--   [Jinx](https://github.com/JinxTheCatto) [(Donate here to help us develop the project :3)](https://ko-fi.com/jinxthecat)
--   [Lulu](https://github.com/luluwaffless) [(donate here to help us develop the project!)](https://ko-fi.com/luluwaffless)
+### Documentation
+
+For more detailed information, see:
+
+- [Architecture Documentation](docs/architecture.md) - System design and component overview
+- [API Documentation](docs/api.md) - API endpoints and usage
+- [Development Guide](docs/development.md) - Development setup and contribution
+- [Contributing Guidelines](docs/CONTRIBUTING.md) - How to contribute
+- [Codebase Review](docs/codebase-review.md) - Detailed code analysis
+
+### Completed Features
+- [x] Proxy support
+- [x] Add support for paid colors
+- [x] Support for painting between multiple tiles
+- [x] Easier multi-account support for one template
+- [x] Queueing system for multi-accounts
+- [x] Template share codes with RLE compression
+- [x] WebSocket support for real-time token requests
+- [x] Graceful shutdown with state persistence
+
+### Credits
+
+**Original Creators:**
+-   [Jinx](https://github.com/JinxTheCatto)
+-   [Lulu](https://github.com/luluwaffless)
+
+**Current Maintainer:**
+-   [Arknight](https://github.com/Arknight38) [(Donate here to help us develop the project)](https://ko-fi.com/ark38)
+
+**Original Repository:** https://github.com/luluwaffless/wplacer
 
 And to our amazing contributors!
 <p align="center"><img src="https://contrib.rocks/image?repo=wplacer/wplacer"></p>
 
-### License 📜
+### License
 
 [GNU AGPL v3](LICENSE)

@@ -1,5 +1,5 @@
 // --- Event Listeners ---
-import { tokenWaitStartTime, autoReloadEnabled, autoClearEnabled, pollInterval, setTokenWaitStartTime } from './constants.js';
+import { tokenWaitStartTime, autoReloadEnabled, autoClearEnabled, setTokenWaitStartTime, getPollInterval } from './constants.js';
 import { getSettings, getServerUrl } from './core.js';
 import { startPolling } from './polling.js';
 import { sendCookie, clearPawtectCache, quickLogout } from './user-management.js';
@@ -113,7 +113,7 @@ export function setupEventListeners() {
             console.log("wplacer: wplace.live tab loaded. Sending cookie and ensuring polling is active.");
             sendCookie(response => console.log(`wplacer: Cookie send status: ${response.success ? 'Success' : 'Failed'}`));
             
-            if (!pollInterval) {
+            if (!getPollInterval()) {
                 console.log("wplacer: Starting polling because wplace.live tab loaded.");
                 startPolling();
             }

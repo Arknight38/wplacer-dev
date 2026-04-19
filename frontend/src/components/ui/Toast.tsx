@@ -15,10 +15,10 @@ interface ToastItemProps extends Toast {
 }
 
 const icons: Record<ToastType, string> = {
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-  info: 'ℹ',
+  success: 'OK',
+  error: 'ERR',
+  warning: 'WARN',
+  info: 'INFO',
 };
 
 function ToastItem({ id, type, title, message, onClose, duration = 5000 }: ToastItemProps) {

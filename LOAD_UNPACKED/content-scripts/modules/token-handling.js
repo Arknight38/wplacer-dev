@@ -77,7 +77,7 @@ const postToken = (token, pawtectToken) => {
         return;
     }
     sentTokens.add(token);
-    console.log(`✅ wplacer: CAPTCHA Token Captured. Sending to server.`);
+    console.log(`wplacer: CAPTCHA Token Captured. Sending to server.`);
     const fp = window.wplacerFP || sessionStorage.getItem('wplacer_fp') || generateRandomHex(32);
     
     const colors = getCurrentColorOrder();
@@ -149,7 +149,7 @@ export function setupTokenHandling() {
             if (data && data.type === 'WPLACER_PAWTECT_TOKEN' && typeof data.token === 'string') {
                 pending.pawtect = data.token;
                 window.wplacerPawtectToken = data.token;
-                console.log('✅ wplacer: Pawtect token captured from', data.origin || 'unknown', 'waiting/pairing...');
+                console.log('wplacer: Pawtect token captured from', data.origin || 'unknown', 'waiting/pairing...');
                 trySendPair();
             }
         } catch {}
@@ -161,8 +161,8 @@ export function setupTokenHandling() {
             if (event.source === window && event.data && event.data.type === 'WPLACER_PAWTECT_TOKEN') {
                 const token = event.data.token || null;
                 const fp = event.data.fp || null;
-                console.log('✅ wplacer: Pawtect token:', token);
-                if (fp) console.log('✅ wplacer: Pawtect fp:', fp);
+                console.log('wplacer: Pawtect token:', token);
+                if (fp) console.log('wplacer: Pawtect fp:', fp);
                 try {
                     chrome.runtime.sendMessage({ action: 'applyPawtect', token, fp });
                 } catch {}

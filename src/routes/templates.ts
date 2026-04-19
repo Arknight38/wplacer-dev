@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import { TemplateManager, setGlobalUsers, setGlobalSettings, setColorOrderGetter, createTemplateContext, type TemplateContext } from '../services/template-manager.js';
+import { getBrowserGlobals } from './tokens.js';
 import { log } from '../utils/logger.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import type { Template, User, Settings } from '../types/index.js';
@@ -30,6 +31,7 @@ function getTemplateContext(): TemplateContext {
     activeTemplateUsers: new Set(),
     templateQueue,
     activePaintingTasks: { count: 0 },
+    browserGlobals: getBrowserGlobals(),
   });
 }
 
@@ -346,7 +348,7 @@ router.post('/template', validateBody(templateCreateSchema), async (req: Request
 
     templates[templateId] = manager;
     saveTemplates();
-    log('SYSTEM', 'Templates', `✅ Created new template '${templateId}' (${manager.name})`);
+    log('SYSTEM', 'Templates', `Created new template '${templateId}' (${manager.name})`);
     res.status(HTTP_STATUS.OK).json({ success: true, id: templateId });
   } catch (error: any) {
     log('ERROR', 'Templates', `Failed to create template '${templateId}' (${templateName}): ${error.message}`);
@@ -368,7 +370,7 @@ router.delete('/template/:id', (_req: Request, res: Response): void => {
 
   delete templates[id];
   saveTemplates();
-  log('SYSTEM', 'Templates', `🗑️ Deleted template "${manager.name}".`);
+  log('SYSTEM', 'Templates', `Deleted template "${manager.name}".`);
   res.sendStatus(HTTP_STATUS.OK);
 });
 

@@ -30,3 +30,7 @@ export const setWs = (value) => { ws = value; };
 export const setWsReconnectTimer = (value) => { wsReconnectTimer = value; };
 export const setPollInterval = (value) => { pollInterval = value; };
 export const setActivityCheckInterval = (value) => { activityCheckInterval = value; };
+
+// --- State Getters ---
+export const getPollInterval = () => pollInterval;
+export const getActivityCheckInterval = () => activityCheckInterval;

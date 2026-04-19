@@ -26,6 +26,11 @@ interface TemplateManagerConfig {
   userIds: string[];
 }
 
+export interface BrowserGlobals {
+  pawtect: string | null;
+  fp: string | null;
+}
+
 /** Dependency injection context to replace global state */
 export interface TemplateContext {
   users: Record<string, User>;
@@ -35,6 +40,7 @@ export interface TemplateContext {
   activeTemplateUsers: Set<string>;
   templateQueue: string[];
   activePaintingTasks: { count: number };
+  browserGlobals: BrowserGlobals;
 }
 
 /** Create a complete context with all required properties */
@@ -47,6 +53,7 @@ export function createTemplateContext(partial: Partial<TemplateContext> = {}): T
     activeTemplateUsers: partial.activeTemplateUsers ?? new Set(),
     templateQueue: partial.templateQueue ?? [],
     activePaintingTasks: partial.activePaintingTasks ?? { count: 0 },
+    browserGlobals: partial.browserGlobals ?? { pawtect: null, fp: null },
   };
 }
 
@@ -216,6 +223,9 @@ export class TemplateManager {
     if (typeof this.ctx.getColorOrderForTemplate !== 'function') {
       throw new Error('TemplateContext.getColorOrderForTemplate is required and must be a function');
     }
+    if (!this.ctx.browserGlobals || typeof this.ctx.browserGlobals !== 'object') {
+      throw new Error('TemplateContext.browserGlobals is required and must be an object');
+    }
   }
 
   /* Sleep that can be interrupted when settings change. */
@@ -237,7 +247,7 @@ export class TemplateManager {
 
   interruptSleep(): void {
     if (this.sleepAbortController) {
-      log('SYSTEM', 'wplacer', `[${this.name}] ⚙️ Settings changed, waking.`);
+      log('SYSTEM', 'wplacer', `[${this.name}] Settings changed, waking.`);
       this.sleepAbortController.abort();
     }
   }
@@ -288,8 +298,8 @@ export class TemplateManager {
     while (!done && this.running) {
       try {
         wplacer.token = await TokenManager.getToken(this.name);
-        // Pull latest pawtect token if available
-        wplacer.pawtect = (globalThis as any).__wplacer_last_pawtect || null;
+        // Pull latest pawtect token from injected context
+        wplacer.pawtect = this.ctx.browserGlobals.pawtect;
         const painted = await wplacer.paint(this.currentPixelSkip, colorFilter);
         paintedTotal += painted;
         done = true;
@@ -298,8 +308,8 @@ export class TemplateManager {
           const until = new Date(error.suspendedUntil).toLocaleString();
 
           // Difference between a BAN and a SUSPENSION of the account.
-          if (error.durationMs > 0) log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] 🛑 Account suspended until ${until}.`);
-          else log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] 🛑 Account BANNED PERMANENTLY, banned due to ${error.reason}.`);
+          if (error.durationMs > 0) log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] Account suspended until ${until}.`);
+          else log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] Account BANNED PERMANENTLY, banned due to ${error.reason}.`);
 
           /*
           If a BAN has been issued, instead of setting suspendedUntil to wplacer's suspendedUntil (current date in ms),
@@ -411,14 +421,14 @@ export class TemplateManager {
 
     let waitTime = (cooldowns.length > 0 ? Math.min(...cooldowns) : MS.TWO_MIN) + TEMPLATE_CONFIG.COOLDOWN_CALCULATION_BUFFER_MS;
     if (waitTime < this.ctx.settings.accountCooldown) {
-      log('SYSTEM', 'wplacer', `[${this.name}] ⚠️ Calculated wait time (${duration(waitTime)}) is unusually short. Defaulting to account cooldown to prevent rapid looping.`);
+      log('SYSTEM', 'wplacer', `[${this.name}] Calculated wait time (${duration(waitTime)}) is unusually short. Defaulting to account cooldown to prevent rapid looping.`);
       waitTime = this.ctx.settings.accountCooldown;
     }
 
     this.status = 'Waiting for charges.';
-    log('SYSTEM', 'wplacer', `[${this.name}] ⏳ No users ready. Waiting ~${duration(waitTime)}.`);
+    log('SYSTEM', 'wplacer', `[${this.name}] No users ready. Waiting ~${duration(waitTime)}.`);
     await this.cancellableSleep(waitTime);
-    log('SYSTEM', 'wplacer', `[${this.name}] 🫃 Woke up. Re-evaluating...`);
+    log('SYSTEM', 'wplacer', `[${this.name}] Woke up. Re-evaluating...`);
   }
 
   async _findWorkingUserAndCheckPixels(): Promise<PixelCheckResult | null> {
@@ -543,7 +553,7 @@ export class TemplateManager {
 
     while (this.running && !passComplete) {
       if (this.userQueue.length === 0) {
-        log('SYSTEM', 'wplacer', `[${this.name}] ⏳ No valid users in queue. Waiting...`);
+        log('SYSTEM', 'wplacer', `[${this.name}] No valid users in queue. Waiting...`);
         await this.cancellableSleep(TEMPLATE_CONFIG.EMPTY_QUEUE_RETRY_DELAY_MS);
         this.userQueue = [...this.userIds];
         continue;
@@ -561,7 +571,7 @@ export class TemplateManager {
 
       const result = await this._paintWithUser(bestUser, checkResult, color);
       if (result.needsCooldown && this.running && !result.passComplete && this.ctx.settings.accountCooldown > 0) {
-        log('SYSTEM', 'wplacer', `[${this.name}] ⏱️ Waiting for cooldown (${duration(this.ctx.settings.accountCooldown)}).`);
+        log('SYSTEM', 'wplacer', `[${this.name}] Waiting for cooldown (${duration(this.ctx.settings.accountCooldown)}).`);
         await this.cancellableSleep(this.ctx.settings.accountCooldown);
       }
 
@@ -621,7 +631,7 @@ export class TemplateManager {
         (p: any) => (color === null || p.color === color) && (p.localX + p.localY) % this.currentPixelSkip === 0
       );
       if (remainingPassPixels.length === 0) {
-        log('SYSTEM', 'wplacer', `[${this.name}] ✅ Pass (1/${this.currentPixelSkip}) complete.`);
+        log('SYSTEM', 'wplacer', `[${this.name}] Pass (1/${this.currentPixelSkip}) complete.`);
         passComplete = true;
       }
     }
@@ -631,11 +641,11 @@ export class TemplateManager {
 
   private async _checkTemplateStatus(): Promise<PixelCheckResult | null> {
     this.status = 'Checking for pixels...';
-    log('SYSTEM', 'wplacer', `[${this.name}] 💓 Starting new check cycle...`);
+    log('SYSTEM', 'wplacer', `[${this.name}] Starting new check cycle...`);
 
     const checkResult = await this._findWorkingUserAndCheckPixels();
     if (!checkResult) {
-      log('SYSTEM', 'wplacer', `[${this.name}] ❌ No working users found for pixel check. Retrying in 30s.`);
+      log('SYSTEM', 'wplacer', `[${this.name}] No working users found for pixel check. Retrying in 30s.`);
       await this.cancellableSleep(TEMPLATE_CONFIG.NO_USERS_RETRY_DELAY_MS);
       return null;
     }
@@ -646,11 +656,11 @@ export class TemplateManager {
   private async _handleTemplateCompletion(): Promise<boolean> {
     if (this.antiGriefMode) {
       this.status = 'Monitoring for changes.';
-      log('SYSTEM', 'wplacer', `[${this.name}] 🖼️ Template complete. Monitoring... Recheck in ${duration(this.ctx.settings.antiGriefStandby)}.`);
+      log('SYSTEM', 'wplacer', `[${this.name}] Template complete. Monitoring... Recheck in ${duration(this.ctx.settings.antiGriefStandby)}.`);
       await this.cancellableSleep(this.ctx.settings.antiGriefStandby);
       return false;
     } else {
-      log('SYSTEM', 'wplacer', `[${this.name}] ✅ Template finished.`);
+      log('SYSTEM', 'wplacer', `[${this.name}] Template finished.`);
       this.status = 'Finished.';
       this.running = false;
       return true;
@@ -660,7 +670,7 @@ export class TemplateManager {
   async start(): Promise<void> {
     this.running = true;
     this.status = 'Started.';
-    log('SYSTEM', 'wplacer', `▶️ Starting template "${this.name}"...`);
+    log('SYSTEM', 'wplacer', `Starting template "${this.name}"...`);
     this.ctx.activePaintingTasks.count++;
 
     try {
@@ -705,9 +715,9 @@ export class TemplateManager {
       message.includes('(502)') ||
       error?.name === 'SuspensionError'
     ) {
-      log(id, name, `❌ Failed to ${context}: ${message}`);
+      log(id, name, `Failed to ${context}: ${message}`);
     } else {
-      log(id, name, `❌ Failed to ${context}`, error);
+      log(id, name, `Failed to ${context}`, error);
     }
   }
 }

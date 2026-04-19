@@ -1,5 +1,5 @@
 // --- Polling Logic ---
-import { POLL_INTERVAL_MS, POLL_INTERVAL_IDLE_MS, IDLE_THRESHOLD_MS, pollInterval, activityCheckInterval, lastActivityTime, isIdle, setLastActivityTime, setIsIdle, setPollInterval, setActivityCheckInterval } from './constants.js';
+import { POLL_INTERVAL_MS, POLL_INTERVAL_IDLE_MS, IDLE_THRESHOLD_MS, lastActivityTime, isIdle, setLastActivityTime, setIsIdle, setPollInterval, setActivityCheckInterval, getPollInterval, getActivityCheckInterval } from './constants.js';
 import { pollForTokenRequest } from './token-refresh.js';
 
 export const updateActivityTime = () => {
@@ -13,7 +13,7 @@ export const updateActivityTime = () => {
 
 export const checkIdleStatus = () => {
     const idleTime = Date.now() - lastActivityTime;
-    
+
     if (!isIdle && idleTime > IDLE_THRESHOLD_MS) {
         setIsIdle(true);
         console.log("wplacer: No activity detected, switching to idle polling");
@@ -22,22 +22,25 @@ export const checkIdleStatus = () => {
 };
 
 export const startPolling = () => {
-    if (pollInterval) {
-        clearInterval(pollInterval);
+    const currentPollInterval = getPollInterval();
+    const currentActivityCheckInterval = getActivityCheckInterval();
+
+    if (currentPollInterval) {
+        clearInterval(currentPollInterval);
     }
-    if (activityCheckInterval) {
-        clearInterval(activityCheckInterval);
+    if (currentActivityCheckInterval) {
+        clearInterval(currentActivityCheckInterval);
     }
-    
+
     pollForTokenRequest();
-    
+
     const interval = isIdle ? POLL_INTERVAL_IDLE_MS : POLL_INTERVAL_MS;
     setPollInterval(setInterval(() => {
         pollForTokenRequest();
     }, interval));
-    
+
     console.log(`wplacer: Started polling every ${interval}ms (idle: ${isIdle})`);
-    
+
     setActivityCheckInterval(setInterval(checkIdleStatus, 30000));
 };
 
@@ -46,12 +49,15 @@ export const restartPolling = () => {
 };
 
 export const stopPolling = () => {
-    if (pollInterval) {
-        clearInterval(pollInterval);
+    const currentPollInterval = getPollInterval();
+    const currentActivityCheckInterval = getActivityCheckInterval();
+
+    if (currentPollInterval) {
+        clearInterval(currentPollInterval);
         setPollInterval(null);
     }
-    if (activityCheckInterval) {
-        clearInterval(activityCheckInterval);
+    if (currentActivityCheckInterval) {
+        clearInterval(currentActivityCheckInterval);
         setActivityCheckInterval(null);
     }
     console.log("wplacer: Stopped polling");

@@ -180,7 +180,7 @@ export class WPlacer {
       log(
         this.userInfo!.id,
         this.userInfo!.name,
-        `[${this.templateName}] ⏱️ Server error (500). Wait 40s.`
+        `[${this.templateName}] Server error (500). Wait 40s.`
       );
       await sleep(40000);
       return { painted: 0, success: true };
@@ -326,7 +326,7 @@ export class WPlacer {
         log(
           this.userInfo!.id,
           this.userInfo!.name,
-          `[${this.templateName}] ⚠️ Prediction mismatch. Server reports no charges. Resyncing cache.`
+          `[${this.templateName}] Prediction mismatch. Server reports no charges. Resyncing cache.`
         );
         ChargeCache.forceResync(this.userInfo!.id, 0);
         break;

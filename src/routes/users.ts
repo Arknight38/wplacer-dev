@@ -118,7 +118,7 @@ function classifyError(error: any): { category: ErrorCategory; message: string }
 
 function logUserError(error: any, id: string, name: string, context: string): void {
   const { category, message } = classifyError(error);
-  const emoji = category === 'transient' ? '⚠️' : '❌';
+  const emoji = category === 'transient' ? '[WARNING]' : '[ERROR]';
 
   if (category === 'transient') {
     log(id, name, `${emoji} Transient error during ${context}: ${message}`);
@@ -191,7 +191,7 @@ router.delete('/user/:id', async (req: Request, res: Response): Promise<void> =>
   const deletedName = users[userId].name;
   delete users[userId];
   saveUsers();
-  log('SYSTEM', 'Users', `🗑️ Deleted user ${deletedName}#${userId}.`);
+  log('SYSTEM', 'Users', `Deleted user ${deletedName}#${userId}.`);
 
   let templatesModified = false;
   for (const templateId in templates) {
@@ -201,14 +201,14 @@ router.delete('/user/:id', async (req: Request, res: Response): Promise<void> =>
     manager.userQueue = manager.userQueue.filter((id: string) => id !== userId);
     if (manager.userIds.length < before) {
       templatesModified = true;
-      log('SYSTEM', 'Templates', `🗑️ Removed user ${deletedName}#${userId} from template "${manager.name}".`);
+      log('SYSTEM', 'Templates', `Removed user ${deletedName}#${userId} from template "${manager.name}".`);
       if (manager.masterId === userId) {
         manager.masterId = manager.userIds[0] || null;
         manager.masterName = manager.masterId ? users[manager.masterId].name : null;
       }
       if (manager.userIds.length === 0 && manager.running) {
         manager.running = false;
-        log('SYSTEM', 'wplacer', `[${manager.name}] 🛑 Template stopped, no users left.`);
+        log('SYSTEM', 'wplacer', `[${manager.name}] Template stopped, no users left.`);
       }
     }
   }

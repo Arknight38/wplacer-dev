@@ -41,12 +41,12 @@ class TokenManagerClass {
   private isValidToken(token: string, receivedAt: number): boolean {
     // Check format
     if (!token || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
-      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: ❌ Invalid token format rejected');
+      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: Invalid token format rejected');
       return false;
     }
     // Check if already expired
     if (Date.now() - receivedAt >= this.TOKEN_EXPIRATION_MS) {
-      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: ❌ Expired token rejected');
+      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: Expired token rejected');
       return false;
     }
     return true;
@@ -91,13 +91,13 @@ class TokenManagerClass {
     this.tokenQueue = this.tokenQueue.filter((t) => {
       const isValid = now - t.receivedAt < this.TOKEN_EXPIRATION_MS;
       if (!isValid) {
-        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: 🗑️ Discarding expired token from queue`);
+        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Discarding expired token from queue`);
       }
       return isValid;
     });
     const removed = size0 - this.tokenQueue.length;
     if (removed > 0) {
-      log('SYSTEM', 'wplacer', `TOKEN_MANAGER: 🗑️ Discarded ${removed} expired token(s)`);
+      log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Discarded ${removed} expired token(s)`);
     }
   }
 
@@ -111,12 +111,12 @@ class TokenManagerClass {
 
       if (this.tokenQueue.length > 0) {
         const item = this.tokenQueue.shift()!;
-        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: 📤 Token consumed by "${templateName}"`);
+        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Token consumed by "${templateName}"`);
         return item.token;
       }
 
       if (!this.tokenPromise) {
-        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: ⏳ "${templateName}" waiting for token`);
+        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: "${templateName}" waiting for token`);
         this.isTokenNeeded = true;
         this.tokenPromise = new Promise<string>((resolve, reject) => {
           this.resolvePromise = resolve;
@@ -147,7 +147,7 @@ class TokenManagerClass {
       const newToken: TokenQueueItem = { token: t, receivedAt: now };
 
       if (this.resolvePromise) {
-        log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: ✅ Token consumed by waiting task');
+        log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: Token consumed by waiting task');
         this.resolvePromise(newToken.token);
         this.cleanupPromise();
         return;
@@ -155,12 +155,12 @@ class TokenManagerClass {
 
       // Check queue size limit
       if (this.tokenQueue.length >= MAX_QUEUE_SIZE) {
-        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: ⚠️ Queue full, discarding oldest token`);
+        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Queue full, discarding oldest token`);
         this.tokenQueue.shift();
       }
 
       this.tokenQueue.push(newToken);
-      log('SYSTEM', 'wplacer', `TOKEN_MANAGER: ✅ Token queued (size: ${this.tokenQueue.length})`);
+      log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Token queued (size: ${this.tokenQueue.length})`);
     } finally {
       release();
     }

@@ -1,5 +1,5 @@
 // --- Main Content Script Entry Point ---
-console.log("✅ wplacer: Content script loaded.");
+console.log("wplacer: Content script loaded.");
 
 import { setupScriptInjection } from './modules/script-injection.js';
 import { setupTokenHandling } from './modules/token-handling.js';
