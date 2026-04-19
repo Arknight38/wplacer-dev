@@ -24,6 +24,6 @@ if %NEED_INSTALL%==1 (
 )
 
 call cls
-echo [run] npm start
-call npm start
-pause >nul
+echo [run] Starting backend and frontend in separate windows...
+start "Backend" cmd /k "npx tsx watch --env-file=.env src/server.ts"
+start "Frontend" cmd /k "cd frontend && npm run dev"

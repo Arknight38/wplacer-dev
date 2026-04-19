@@ -17,3 +17,8 @@ AUTO_LOGIN/proxies.txt
 AUTO_LOGIN/data.json
 AUTO_LOGIN/backup
 AUTO_LOGIN/sessions/*
+# TypeScript build artifacts
+dist/
+*.d.ts
+*.d.ts.map
+*.js.map

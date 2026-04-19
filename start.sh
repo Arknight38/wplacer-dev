@@ -18,5 +18,15 @@ else
   if [[ $? != 0 ]]; then NEED_INSTALL=1; fi
 fi
 
-echo [run] npm start
-npm start
+echo [run] Starting backend and frontend...
+echo "Starting backend on port 3000..."
+npx tsx watch --env-file=.env src/server.ts &
+BACKEND_PID=$!
+echo "Backend PID: $BACKEND_PID"
+echo "Starting frontend..."
+cd frontend && npm run dev &
+FRONTEND_PID=$!
+echo "Frontend PID: $FRONTEND_PID"
+echo "Both services started. Press Ctrl+C to stop."
+wait $BACKEND_PID
+wait $FRONTEND_PID

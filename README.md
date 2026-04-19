@@ -1,4 +1,4 @@
-<h1 align="center"><p style="display: inline-flex; align-items: center; gap: 0.25em"><img style="width: 1.5em; height: 1.5em;" src="public/icons/favicon.png">wplacer</p></h1>
+<h1 align="center"><p style="display: inline-flex; align-items: center; gap: 0.25em"><img style="width: 1.5em; height: 1.5em;" src="frontend/public/icons/favicon.svg">wplacer</p></h1>
 
 <p align="center"><img src="https://img.shields.io/github/package-json/v/wplacer/wplacer">
 <a href="LICENSE"><img src="https://img.shields.io/github/license/wplacer/wplacer"></a>

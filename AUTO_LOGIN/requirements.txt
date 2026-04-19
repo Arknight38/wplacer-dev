@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-loguru
-camoufox
-browserforge
-playwright
-stem
-httpx
