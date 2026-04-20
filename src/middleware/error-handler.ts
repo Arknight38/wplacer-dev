@@ -3,6 +3,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger.js';
 
 // Custom error classes
 export class AppError extends Error {
@@ -50,7 +51,7 @@ export class ConflictError extends AppError {
 
 // Error handler middleware
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
-  console.error('Error:', err);
+  logger.error('Error:', err);
 
   if (err instanceof AppError) {
     res.status(err.statusCode).json({

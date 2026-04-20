@@ -6,6 +6,7 @@ import { Router, Request, Response } from 'express';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { palette, DATA_DIR, HTTP_STATUS } from '../config/constants.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ function loadColorOrdering(): void {
         templates: data.templates || {},
       };
     } catch (e: any) {
-      console.error('Error loading color ordering:', e.message);
+      logger.error('Error loading color ordering:', e.message);
     }
   }
 }
@@ -41,9 +42,9 @@ function saveColorOrdering(): void {
 
   try {
     writeFileSync(orderingPath, JSON.stringify(colorOrdering, null, 2));
-    console.log('Color ordering saved successfully');
+    logger.info('Color ordering saved successfully');
   } catch (e: any) {
-    console.error('Error saving color ordering:', e.message);
+    logger.error('Error saving color ordering:', e.message);
     throw e;
   }
 }

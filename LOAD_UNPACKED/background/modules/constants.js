@@ -18,6 +18,7 @@ export let ws = null; // WebSocket connection
 export let wsReconnectTimer = null;
 export let pollInterval = null;
 export let activityCheckInterval = null;
+export let botActive = false; // Gate for wplace requests - only true when templates running
 
 // --- State Setters ---
 export const setAutoReloadEnabled = (value) => { autoReloadEnabled = value; };
@@ -30,7 +31,9 @@ export const setWs = (value) => { ws = value; };
 export const setWsReconnectTimer = (value) => { wsReconnectTimer = value; };
 export const setPollInterval = (value) => { pollInterval = value; };
 export const setActivityCheckInterval = (value) => { activityCheckInterval = value; };
+export const setBotActive = (value) => { botActive = value; };
 
 // --- State Getters ---
 export const getPollInterval = () => pollInterval;
 export const getActivityCheckInterval = () => activityCheckInterval;
+export const getBotActive = () => botActive;

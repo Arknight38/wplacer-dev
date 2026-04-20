@@ -18,6 +18,7 @@ export const sendCookie = async (callback) => {
     if (sCookie) cookies.s = sCookie.value;
     const url = await getServerUrl("/user");
 
+    console.log(`wplacer: Sending cookie to server at ${url}`);
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -26,8 +27,10 @@ export const sendCookie = async (callback) => {
         });
         if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
         const userInfo = await response.json();
+        console.log(`wplacer: Cookie sent successfully, user: ${userInfo.name}`);
         if (callback) callback({ success: true, name: userInfo.name });
     } catch (error) {
+        console.error(`wplacer: Failed to connect to server at ${url}`, error);
         if (callback) callback({ success: false, error: "Could not connect to the wplacer server." });
     }
 };

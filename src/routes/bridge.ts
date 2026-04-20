@@ -172,4 +172,57 @@ export function clearLatestHeaders(): void {
   latestHeaders = null;
 }
 
+// WebSocket broadcast function - will be set by server.ts
+let broadcastToExtension: (type: string, data?: any) => void = () => {};
+
+export function setBroadcastFunction(fn: (type: string, data?: any) => void): void {
+  broadcastToExtension = fn;
+}
+
+/**
+ * Broadcast bot activation to extension
+ */
+export function broadcastBotActivate(): void {
+  broadcastToExtension('bot-activate');
+  logger.info('Bridge: Broadcasted bot activation');
+}
+
+/**
+ * Broadcast bot deactivation to extension
+ */
+export function broadcastBotDeactivate(): void {
+  broadcastToExtension('bot-deactivate');
+  logger.info('Bridge: Broadcasted bot deactivation');
+}
+
+/**
+ * POST /bot/activate
+ * Activate the extension bot (start polling, allow wplace requests)
+ */
+router.post('/bot/activate', (_req: Request, res: Response): void => {
+  try {
+    broadcastToExtension('bot-activate');
+    logger.info('Bridge: Bot activation sent to extension');
+    res.json({ success: true, message: 'Bot activation sent' });
+  } catch (error) {
+    logger.error('Bridge: Error sending bot activation', error);
+    res.status(HTTP_STATUS.SRV_ERR).json({ error: 'Failed to send activation' });
+  }
+});
+
+/**
+ * POST /bot/deactivate
+ * Deactivate the extension bot (stop polling, block wplace requests)
+ */
+router.post('/bot/deactivate', (_req: Request, res: Response): void => {
+  try {
+    broadcastToExtension('bot-deactivate');
+    logger.info('Bridge: Bot deactivation sent to extension');
+    res.json({ success: true, message: 'Bot deactivation sent' });
+  } catch (error) {
+    logger.error('Bridge: Error sending bot deactivation', error);
+    res.status(HTTP_STATUS.SRV_ERR).json({ error: 'Failed to send deactivation' });
+  }
+});
+
 export default router;

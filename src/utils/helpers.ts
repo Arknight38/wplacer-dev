@@ -4,6 +4,7 @@
 
 import { exec } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { logger } from './logger.js';
 
 // Re-export MS time constants from central constants module
 export { MS } from '../config/constants.js';
@@ -52,7 +53,7 @@ export function loadJSON<T>(filename: string): T {
   try {
     return JSON.parse(readFileSync(filename, 'utf8')) as T;
   } catch (error) {
-    console.error(`Failed to load JSON from ${filename}:`, error);
+    logger.error(`Failed to load JSON from ${filename}:`, error);
     return {} as T;
   }
 }
@@ -64,7 +65,7 @@ export function saveJSON<T>(filename: string, data: T): void {
   try {
     writeFileSync(filename, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error(`Failed to save JSON to ${filename}:`, error);
+    logger.error(`Failed to save JSON to ${filename}:`, error);
     throw error;
   }
 }

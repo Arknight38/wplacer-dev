@@ -22,7 +22,8 @@ import proxyRouter from './routes/proxy.js';
 import paletteRouter from './routes/palette.js';
 import colorOrderingRouter from './routes/color-ordering.js';
 import templatesRouter from './routes/templates.js';
-import bridgeRouter from './routes/bridge.js';
+import bridgeRouter, { setBroadcastFunction } from './routes/bridge.js';
+import overlayRouter from './routes/overlay.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
@@ -30,7 +31,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 // Import services and utilities
 import { APP_HOST, APP_PRIMARY_PORT, APP_FALLBACK_PORTS, DATA_DIR, USERS_FILE, SETTINGS_FILE, TEMPLATES_PATH, ALLOWED_ORIGINS, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX, MAX_WS_CONNECTIONS, WS_PING_INTERVAL_MS, GRACEFUL_SHUTDOWN_TIMEOUT_MS, KEEP_ALIVE_INTERVAL_MS, MS } from './config/constants.js';
 import { loadSettings } from './config/settings.js';
-import { log, logger } from './utils/logger.js';
+import { log, logger, wsLogClients, wsErrorClients } from './utils/logger.js';
 import { loadJSON, saveJSON } from './utils/helpers.js';
 import type { User, TemplateData } from './types/index.js';
 import { setActiveBrowserUsers, setActiveTemplateUsers, setTemplateQueue, setActivePaintingTasks, processQueue } from './services/template-manager.js';
@@ -136,7 +137,25 @@ const limiter = rateLimit({
 });
 
 app.use(cors({
-  origin: ALLOWED_ORIGINS,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+
+    // Check against allowed origins
+    const allowed = ALLOWED_ORIGINS.some((allowedOrigin) => {
+      if (allowedOrigin.includes('*')) {
+        const regex = new RegExp(allowedOrigin.replace(/\*/g, '.*'));
+        return regex.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+
+    if (allowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.static('public'));
@@ -153,6 +172,7 @@ app.use(paletteRouter);
 app.use(colorOrderingRouter);
 app.use(templatesRouter);
 app.use(bridgeRouter);
+app.use(overlayRouter);
 
 // Swagger API documentation
 const swaggerOptions = {
@@ -183,17 +203,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// WebSocket setup
-const wsClients = {
-  logs: new Set<any>(),
-  errors: new Set<any>(),
-};
-
+// WebSocket connections tracking
 const wsConnections = new Set<any>();
 
 function cleanupWebSocket(ws: any): void {
-  wsClients.logs.delete(ws);
-  wsClients.errors.delete(ws);
+  wsLogClients.delete(ws);
+  wsErrorClients.delete(ws);
   wsConnections.delete(ws);
 }
 
@@ -249,7 +264,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
   }
 
   serverState.shutdownInProgress = true;
-  console.log(gradient('yellow', 'red')(`\n📴 Received ${signal}. Starting graceful shutdown...`));
+  logger.warn(`Received ${signal}. Starting graceful shutdown...`);
+  console.log(gradient('yellow', 'red')(`\nReceived ${signal}. Starting graceful shutdown...`));
 
   // Clear all intervals
   serverState.intervals.forEach(clearInterval);
@@ -310,6 +326,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     });
   }
 
+  logger.info('Graceful shutdown completed');
   console.log(gradient('green', 'cyan')('Graceful shutdown completed'));
   process.exit(0);
 }
@@ -354,7 +371,8 @@ async function startServer(): Promise<void> {
       try {
         server = await new Promise((resolve, reject) => {
           const s = app.listen(port, APP_HOST, () => {
-            console.log(gradient('green', 'cyan')(`🚀 Server listening on http://${APP_HOST}:${port}`));
+            logger.info(`Server listening on http://${APP_HOST}:${port}`);
+            console.log(gradient('green', 'cyan')(`Server listening on http://${APP_HOST}:${port}`));
             resolve(s);
           });
           s.on('error', reject);
@@ -364,22 +382,37 @@ async function startServer(): Promise<void> {
         break;
       } catch (error: any) {
         if (error.code === 'EADDRINUSE') {
-          console.log(`Port ${port} is in use, trying next port...`);
+          logger.info(`Port ${port} is in use, trying next port...`);
         } else {
-          console.error(`Failed to bind to port ${port}:`, error.message);
+          logger.error(`Failed to bind to port ${port}:`, error);
           throw error;
         }
       }
     }
 
     if (!server || boundPort === null) {
-      console.error('Failed to bind to any port');
+      logger.error('Failed to bind to any port');
       process.exit(1);
     }
 
     // WebSocket server
     const wss = new WebSocketServer({ server });
     serverState.wss = wss;
+
+    // Set up broadcast function for extension messages
+    setBroadcastFunction((type: string, data?: any) => {
+      const message = JSON.stringify({ type, ...data });
+      wsConnections.forEach((ws: any) => {
+        if (ws.readyState === 1) {
+          try {
+            ws.send(message);
+          } catch (e) {
+            // Ignore send errors for disconnected clients
+          }
+        }
+      });
+    });
+
     wss.on('connection', (ws: any, _req) => {
       // Check connection limit
       if (wsConnections.size >= MAX_WS_CONNECTIONS) {
@@ -388,14 +421,19 @@ async function startServer(): Promise<void> {
       }
 
       wsConnections.add(ws);
+      logger.info(`WebSocket client connected (${wsConnections.size} total)`);
 
       ws.on('message', (message: string) => {
         try {
           const data = JSON.parse(message);
           if (data.type === 'logs') {
-            wsClients.logs.add(ws);
+            wsLogClients.add(ws);
+            logger.info(`WebSocket client subscribed to logs (${wsLogClients.size} log clients)`);
+            ws.send(JSON.stringify({ type: 'system', message: 'Connected to log stream' }));
           } else if (data.type === 'errors') {
-            wsClients.errors.add(ws);
+            wsErrorClients.add(ws);
+            logger.info(`WebSocket client subscribed to errors (${wsErrorClients.size} error clients)`);
+            ws.send(JSON.stringify({ type: 'system', message: 'Connected to error stream' }));
           }
         } catch (err) {
           logger.error('Failed to parse WebSocket message', err);
@@ -439,9 +477,10 @@ async function startServer(): Promise<void> {
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+    logger.info('Server started successfully');
     console.log(gradient('green', 'yellow')('Server started successfully'));
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error);
     log('SYSTEM', 'wplacer', 'Server startup failed', error as Error);
     process.exit(1);
   }
@@ -449,19 +488,19 @@ async function startServer(): Promise<void> {
 
 // Handle uncaught errors with graceful shutdown
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+  logger.error('Uncaught exception:', error);
   log('SYSTEM', 'wplacer', 'Uncaught exception', error);
   gracefulShutdown('uncaughtException').catch(() => process.exit(1));
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled rejection at:', promise, 'reason:', reason);
   log('SYSTEM', 'wplacer', 'Unhandled rejection', reason as Error);
   // Don't shutdown on unhandled rejections, just log them
 });
 
 // Start server
 startServer().catch((error) => {
-  console.error('Failed to start server:', error);
+  logger.error('Failed to start server:', error);
   process.exit(1);
 });

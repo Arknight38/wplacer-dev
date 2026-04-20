@@ -7,9 +7,9 @@ import type { Palette, ColorNames } from '../types/index.js';
 // ============ Server Configuration ============
 
 export const APP_HOST = '0.0.0.0';
-export const APP_PRIMARY_PORT = Number(process.env.PORT) || 80;
+export const APP_PRIMARY_PORT = Number(process.env.PORT) || 3000;
 export const APP_FALLBACK_PORTS = [
-  3000,
+  80,
   5173,
   8080,
   8000,
@@ -22,7 +22,7 @@ export const APP_FALLBACK_PORTS = [
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-  : ['http://localhost:*'];
+  : ['http://localhost:*', 'http://127.0.0.1:*', 'chrome-extension://*'];
 
 export const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000; // 15 minutes
 export const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX) || 100;

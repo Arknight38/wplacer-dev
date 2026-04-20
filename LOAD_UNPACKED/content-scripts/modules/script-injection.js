@@ -30,6 +30,19 @@ export function injectPawtectHelper() {
     }
 }
 
+export function injectOverlayScript() {
+    try {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('injected/overlay_inject.js');
+        script.async = false;
+        (document.head || document.documentElement).appendChild(script);
+        script.onload = () => script.remove();
+        console.log('wplacer: overlay script injected.');
+    } catch (e) {
+        console.warn('wplacer: Failed to inject overlay script', e);
+    }
+}
+
 export function setupScriptInjection() {
     // Inject turnstile generator
     injectTurnstileGenerator();
@@ -37,6 +50,7 @@ export function setupScriptInjection() {
     // Inject pawtect helper on wplace.live
     if (location.hostname.endsWith('wplace.live')) {
         injectPawtectHelper();
+        injectOverlayScript();
     }
 
     // Allow manual reinject via Ctrl+Shift+P

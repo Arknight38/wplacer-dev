@@ -6,6 +6,7 @@ import type { Settings } from '../types/index.js';
 import { MS } from './constants.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { DATA_DIR, SETTINGS_FILE } from './constants.js';
+import { logger } from '../utils/logger.js';
 
 // Ensure data directory exists
 if (!existsSync(DATA_DIR)) {
@@ -43,7 +44,7 @@ export function loadSettings(): Settings {
 
     // Sanitize keepAliveCooldown to prevent issues from old/bad settings files
     if (settings.keepAliveCooldown < MS.FIVE_MIN) {
-      console.warn(
+      logger.warn(
         `[SYSTEM] WARNING: keepAliveCooldown is set to a very low value. Adjusting to 1 hour.`
       );
       settings.keepAliveCooldown = MS.ONE_HOUR;
@@ -51,7 +52,7 @@ export function loadSettings(): Settings {
 
     return settings;
   } catch (error) {
-    console.error('Failed to load settings, using defaults:', error);
+    logger.error('Failed to load settings, using defaults:', error);
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -63,7 +64,7 @@ export function saveSettings(settings: Settings): void {
   try {
     writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    logger.error('Failed to save settings:', error);
     throw error;
   }
 }

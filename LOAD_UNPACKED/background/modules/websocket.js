@@ -1,26 +1,28 @@
 // --- WebSocket Connection ---
 import { WS_RECONNECT_DELAY_MS, ws, wsReconnectTimer, tokenWaitStartTime, setWs, setWsReconnectTimer, setTokenWaitStartTime } from './constants.js';
 import { getSettings } from './core.js';
+import { activateBot, deactivateBot } from './bot-state.js';
 
 export const connectWebSocket = async () => {
     try {
         const { host, port } = await getSettings();
         const wsUrl = `ws://${host}:${port}`;
-        
+
         console.log(`wplacer: Connecting to WebSocket at ${wsUrl}`);
-        setWs(new WebSocket(wsUrl));
-        
-        ws.onopen = () => {
+        const socket = new WebSocket(wsUrl);
+        setWs(socket);
+
+        socket.onopen = () => {
             console.log("wplacer: WebSocket connected");
-            ws.send(JSON.stringify({ type: 'logs' }));
-            
+            socket.send(JSON.stringify({ type: 'logs' }));
+
             if (wsReconnectTimer) {
                 clearTimeout(wsReconnectTimer);
                 setWsReconnectTimer(null);
             }
         };
-        
-        ws.onmessage = (event) => {
+
+        socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'token-needed' && data.needed) {
@@ -34,16 +36,24 @@ export const connectWebSocket = async () => {
                         }).catch(() => {});
                     }
                 }
+                if (data.type === 'bot-activate') {
+                    console.log("wplacer: WebSocket received bot activation request");
+                    activateBot();
+                }
+                if (data.type === 'bot-deactivate') {
+                    console.log("wplacer: WebSocket received bot deactivation request");
+                    deactivateBot();
+                }
             } catch (error) {
                 console.error("wplacer: Failed to parse WebSocket message", error);
             }
         };
         
-        ws.onerror = (error) => {
+        socket.onerror = (error) => {
             console.error("wplacer: WebSocket error", error);
         };
         
-        ws.onclose = () => {
+        socket.onclose = () => {
             console.log("wplacer: WebSocket closed");
             setWs(null);
             if (!wsReconnectTimer) {

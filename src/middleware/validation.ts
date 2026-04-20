@@ -13,7 +13,7 @@ export const cookiesSchema = z.object({
 
 export const userLoginSchema = z.object({
   cookies: cookiesSchema,
-  expirationDate: z.string().optional(),
+  expirationDate: z.number().optional(),
 });
 
 export const templateCreateSchema = z.object({

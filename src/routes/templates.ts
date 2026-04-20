@@ -10,9 +10,11 @@ import { HTTP_STATUS } from '../config/constants.js';
 import type { Template, User, Settings } from '../types/index.js';
 import { getColorOrder } from './color-ordering.js';
 import { validateBody, templateCreateSchema, templateUpdateSchema } from '../middleware/validation.js';
+import { broadcastBotActivate, broadcastBotDeactivate } from './bridge.js';
 
 // Global state
 let templates: Record<string, TemplateManager> = {};
+let anyTemplateRunning = false;
 let saveTemplates: () => void;
 let templateQueue: string[] = [];
 let processQueueFn: () => void;
@@ -293,7 +295,7 @@ router.post('/templates/import', async (req: Request, res: Response): Promise<vo
 
     templates[templateId] = manager;
     saveTemplates();
-    log('SYSTEM', 'Templates', `📥 Imported template '${templateId}' (${manager.name}) from share code`);
+    log('SYSTEM', 'Templates', `Imported template '${templateId}' (${manager.name}) from share code`);
     res.status(HTTP_STATUS.OK).json({ success: true, id: templateId });
   } catch (error: any) {
     log('ERROR', 'Templates', `Failed to import template '${templateId}': ${error.message}`);
@@ -364,11 +366,22 @@ router.delete('/template/:id', (_req: Request, res: Response): void => {
   }
 
   const manager = templates[id];
-  if (manager.running) {
+  const wasRunning = manager.running;
+  if (wasRunning) {
     manager.running = false;
   }
 
   delete templates[id];
+
+  // Check if any templates still running after deletion
+  if (wasRunning && anyTemplateRunning) {
+    const stillRunning = Object.values(templates).some(t => t.running);
+    if (!stillRunning) {
+      anyTemplateRunning = false;
+      broadcastBotDeactivate();
+    }
+  }
+
   saveTemplates();
   log('SYSTEM', 'Templates', `Deleted template "${manager.name}".`);
   res.sendStatus(HTTP_STATUS.OK);
@@ -418,9 +431,20 @@ router.put('/template/:id', (req: Request, res: Response): void => {
   if (running && !manager.running) {
     templateQueue.push(id);
     processQueueFn();
+    // Activate bot when first template starts
+    if (!anyTemplateRunning) {
+      anyTemplateRunning = true;
+      broadcastBotActivate();
+    }
   } else if (!running && manager.running) {
     manager.running = false;
     manager.status = 'Stopped.';
+    // Check if any templates still running
+    const stillRunning = Object.values(templates).some(t => t.running);
+    if (anyTemplateRunning && !stillRunning) {
+      anyTemplateRunning = false;
+      broadcastBotDeactivate();
+    }
   }
 
   res.sendStatus(HTTP_STATUS.OK);

@@ -9,7 +9,7 @@ export interface User {
   name: string;
   cookies: Cookies;
   suspendedUntil?: number;
-  expirationDate?: string;
+  expirationDate?: number;
   droplets?: number;
   lastActivity?: number;
 }
@@ -225,7 +225,7 @@ export interface LogFileData {
 
 export interface CreateUserRequest {
   cookies: Cookies;
-  expirationDate?: string;
+  expirationDate?: number;
 }
 
 export interface CreateTemplateRequest {

@@ -26,8 +26,8 @@ wplacer is a distributed auto-drawing bot for wplace.live consisting of three ma
 │  │ Script       │  │ Script       │  │ UI           │           │
 │  └──────┬───────┘  └──────┬───────┘  └──────────────┘           │
 │         │                  │                                    │
-│         └──────────────────┴──────────────┐                     │
-│                    WebSocket/HTTP       │                       │
+│         └──────────────────┴─────────────┐                      │
+│                    WebSocket/HTTP        │                      │
 └──────────────────────────────────────────┼──────────────────────┘
                                            │
                                            ▼
@@ -37,10 +37,10 @@ wplacer is a distributed auto-drawing bot for wplace.live consisting of three ma
 │  │ API Routes   │  │ WebSocket    │  │ Services     │           │
 │  │              │  │ Server       │  │              │           │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘           │
-│         │                  │                  │                 │
-│         └──────────────────┴──────────────────┘                 │
-│                            │                                    │
-│                            ▼                                    │
+│         │                 │                 │                   │
+│         └─────────────────┴─────────────────┘                   │
+│                           │                                     │
+│                           ▼                                     │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │              Service Layer (Dependency Injection)        │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │   │

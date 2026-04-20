@@ -3,8 +3,13 @@
  */
 
 import winston from 'winston';
+import Transport from 'winston-transport';
 import { DATA_DIR } from '../config/constants.js';
 import { existsSync, mkdirSync } from 'node:fs';
+
+// WebSocket client sets for log streaming (exported for server.ts)
+export const wsLogClients = new Set<any>();
+export const wsErrorClients = new Set<any>();
 
 // Ensure data directory exists
 if (!existsSync(DATA_DIR)) {
@@ -40,6 +45,44 @@ const format = winston.format.combine(
   winston.format.json()
 );
 
+// WebSocket transport for streaming logs to connected clients
+class WebSocketTransport extends Transport {
+  private levelFilter: string;
+
+  constructor(opts: any = {}) {
+    super(opts);
+    this.levelFilter = opts.levelFilter || 'info';
+  }
+
+  log(info: any, callback: () => void): void {
+    setImmediate(() => this.emit!('logged', info));
+
+    const message = `[${info.timestamp}] ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`;
+    const payload = JSON.stringify({ type: 'log', level: info.level, message });
+
+    // Broadcast to appropriate WebSocket clients
+    if (this.levelFilter === 'error') {
+      wsErrorClients.forEach((ws) => {
+        try {
+          if (ws.readyState === 1) ws.send(payload);
+        } catch {
+          // Client disconnected, will be cleaned up by server
+        }
+      });
+    } else {
+      wsLogClients.forEach((ws) => {
+        try {
+          if (ws.readyState === 1) ws.send(payload);
+        } catch {
+          // Client disconnected, will be cleaned up by server
+        }
+      });
+    }
+
+    callback();
+  }
+}
+
 // Define transports
 const transports = [
   // Console transport with colorization
@@ -64,6 +107,10 @@ const transports = [
     level: 'error',
     format,
   }),
+  // WebSocket transport for live log streaming
+  new WebSocketTransport({ level: 'info' }),
+  // WebSocket transport for error streaming
+  new WebSocketTransport({ level: 'error', levelFilter: 'error' }),
 ];
 
 // Create the logger

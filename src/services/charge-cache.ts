@@ -3,6 +3,7 @@
  */
 
 import type { UserInfo } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 interface ChargeCacheEntry {
   base: number;
@@ -38,7 +39,7 @@ export const ChargeCache = {
 
     let sanitizedCount = count;
     if (count > max) {
-      console.log(
+      logger.info(
         `[ChargeCache] Correcting optimistic charge count for user ${userInfo.id}. Server sent ${count}, capping to max ${max}.`
       );
       sanitizedCount = max;

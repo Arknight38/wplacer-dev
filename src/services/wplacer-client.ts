@@ -144,7 +144,7 @@ export class WPlacer {
       log(
         this.userInfo!.id,
         this.userInfo!.name,
-        `[${this.templateName}] 🎨 Painted ${body.colors.length} px at ${tx},${ty}.`
+        `[${this.templateName}] Painted ${body.colors.length} px at ${tx},${ty}.`
       );
       // Update the in-memory tile data.
       this.tileManager.updateTileData(tx, ty, body.coords, body.colors);
@@ -349,7 +349,7 @@ export class WPlacer {
       let msg = `Purchase ok product #${productId} amount ${amount}`;
       if (productId === 80) msg = `Bought ${amount * 30} pixels for ${amount * 500} droplets`;
       else if (productId === 70) msg = `Bought ${amount} Max Charge for ${amount * 500} droplets`;
-      log(this.userInfo!.id, this.userInfo!.name, `[${this.templateName}] 💰 ${msg}`);
+      log(this.userInfo!.id, this.userInfo!.name, `[${this.templateName}] ${msg}`);
       return true;
     }
     if (

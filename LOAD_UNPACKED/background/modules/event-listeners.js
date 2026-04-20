@@ -3,6 +3,19 @@ import { tokenWaitStartTime, autoReloadEnabled, autoClearEnabled, setTokenWaitSt
 import { getSettings, getServerUrl } from './core.js';
 import { startPolling } from './polling.js';
 import { sendCookie, clearPawtectCache, quickLogout } from './user-management.js';
+import { activateBot, deactivateBot, getBotState } from './bot-state.js';
+
+// Ensure offscreen document exists for canvas compositing
+async function ensureOffscreen() {
+    const exists = await chrome.offscreen.hasDocument();
+    if (!exists) {
+        await chrome.offscreen.createDocument({
+            url: chrome.runtime.getURL('offscreen/offscreen.html'),
+            reasons: ['BLOBS'],
+            justification: 'Composite overlay image onto tile canvases using blob manipulation'
+        });
+    }
+}
 
 export function setupEventListeners() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -44,6 +57,21 @@ export function setupEventListeners() {
         }
         if (request.action === "quickLogout") {
             quickLogout(sendResponse);
+            return true;
+        }
+        if (request.action === "activateBot") {
+            activateBot().then(() => {
+                sendResponse({ success: true, state: getBotState() });
+            });
+            return true;
+        }
+        if (request.action === "deactivateBot") {
+            deactivateBot();
+            sendResponse({ success: true, state: getBotState() });
+            return true;
+        }
+        if (request.action === "getBotState") {
+            sendResponse({ success: true, state: getBotState() });
             return true;
         }
         if (request.type === "SEND_TOKEN") {
@@ -105,17 +133,78 @@ export function setupEventListeners() {
             }
             return true;
         }
+
+        // --- Overlay Handlers ---
+        if (request.action === "overlayCoords") {
+            // Forward to backend via WebSocket or HTTP
+            getServerUrl("/overlay/coords").then(url => {
+                fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(request.payload)
+                }).catch(error => {
+                    console.error("wplacer: Failed to send overlay coords:", error);
+                });
+            });
+            return true;
+        }
+
+        if (request.action === "setOverlayAnchor") {
+            chrome.storage.local.set({ overlayAnchorX: request.worldX, overlayAnchorY: request.worldY });
+            // Tell offscreen doc to update its anchor
+            ensureOffscreen().then(() => {
+                chrome.runtime.sendMessage({
+                    action: 'setOverlayAnchor',
+                    worldX: request.worldX,
+                    worldY: request.worldY
+                });
+            });
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (request.action === "setOverlayImage") {
+            chrome.storage.local.set({ overlayImageData: request.dataUrl });
+            ensureOffscreen().then(() => {
+                chrome.runtime.sendMessage({
+                    action: 'setOverlayImage',
+                    dataUrl: request.dataUrl,
+                    worldX: request.worldX,
+                    worldY: request.worldY
+                });
+            });
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (request.action === "compositeTile") {
+            ensureOffscreen().then(() => {
+                chrome.runtime.sendMessage({
+                    action: 'compositeTile',
+                    tileX: request.tileX,
+                    tileY: request.tileY,
+                    buffer: request.buffer,
+                    blobId: request.blobId
+                }, (response) => sendResponse(response));
+            });
+            return true; // async
+        }
+
         return false;
     });
 
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         if (changeInfo.status === 'complete' && tab.url?.startsWith("https://wplace.live")) {
-            console.log("wplacer: wplace.live tab loaded. Sending cookie and ensuring polling is active.");
-            sendCookie(response => console.log(`wplacer: Cookie send status: ${response.success ? 'Success' : 'Failed'}`));
-            
-            if (!getPollInterval()) {
-                console.log("wplacer: Starting polling because wplace.live tab loaded.");
-                startPolling();
+            console.log("wplacer: wplace.live tab loaded.");
+            // Only send cookie and start polling if bot is active
+            if (getBotState().active) {
+                sendCookie(response => console.log(`wplacer: Cookie send status: ${response.success ? 'Success' : 'Failed'}`));
+                if (!getPollInterval()) {
+                    console.log("wplacer: Starting polling because wplace.live tab loaded (bot active).");
+                    startPolling();
+                }
+            } else {
+                console.log("wplacer: Bot inactive - not sending cookie or starting polling.");
             }
         }
     });

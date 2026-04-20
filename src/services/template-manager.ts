@@ -282,7 +282,7 @@ export class TemplateManager {
 
     if (amountToBuy > 0) {
       try {
-        log(userInfo.id, userInfo.name, `[${this.name}] 💰 Attempting to buy ${amountToBuy} charge pack(s) based on available droplets...`);
+        log(userInfo.id, userInfo.name, `[${this.name}] Attempting to buy ${amountToBuy} charge pack(s) based on available droplets...`);
         await wplacer.buyProduct(80, amountToBuy);
         await sleep(this.ctx.settings.purchaseCooldown);
         await wplacer.loadUserInfo();
@@ -320,7 +320,7 @@ export class TemplateManager {
           throw error;
         }
         if (error.message === 'REFRESH_TOKEN') {
-          log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] 🔄 Token expired. Next token...`);
+          log(wplacer.userInfo!.id, wplacer.userInfo!.name, `[${this.name}] Token expired. Next token...`);
           await TokenManager.invalidateToken();
           await sleep(TEMPLATE_CONFIG.TOKEN_REFRESH_DELAY_MS);
         } else {
@@ -608,7 +608,7 @@ export class TemplateManager {
       await this.handleChargePurchases(wplacer);
 
       const chargesBeforePaint = wplacer.userInfo!.charges;
-      log(userInfo.id, userInfo.name, `[${this.name}] 🔋 Best user selected. Ready with charges: ${Math.floor(chargesBeforePaint.count)}/${chargesBeforePaint.max}.`);
+      log(userInfo.id, userInfo.name, `[${this.name}] Best user selected. Ready with charges: ${Math.floor(chargesBeforePaint.count)}/${chargesBeforePaint.max}.`);
 
       await this._performPaintTurn(wplacer, color);
       await this.handleUpgrades(wplacer);

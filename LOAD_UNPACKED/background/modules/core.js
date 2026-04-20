@@ -9,7 +9,7 @@ export const getSettings = async () => {
     console.log("wplacer: Settings loaded - Auto-reload:", autoReloadEnabled, "Auto-clear:", autoClearEnabled);
     
     return {
-        port: result.wplacerPort || 80,
+        port: result.wplacerPort || 3000,
         host: '127.0.0.1',
         autoReload: autoReloadEnabled,
         autoClear: autoClearEnabled

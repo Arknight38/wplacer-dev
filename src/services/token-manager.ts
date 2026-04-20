@@ -174,7 +174,7 @@ class TokenManagerClass {
     try {
       const invalidated = this.tokenQueue.shift();
       if (invalidated) {
-        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: 🔄 Token invalidated (${this.tokenQueue.length} left)`);
+        log('SYSTEM', 'wplacer', `TOKEN_MANAGER: Token invalidated (${this.tokenQueue.length} left)`);
       }
     } finally {
       release();
@@ -213,7 +213,7 @@ class TokenManagerClass {
       }
       this.cleanupPromise();
       this.tokenQueue = [];
-      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: 🧹 Cleared all tokens and promises');
+      log('SYSTEM', 'wplacer', 'TOKEN_MANAGER: Cleared all tokens and promises');
     } finally {
       release();
     }

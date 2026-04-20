@@ -63,8 +63,8 @@ CollapsibleTrigger.displayName = "CollapsibleTrigger"
 
 const CollapsibleContent = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { open?: boolean }
->(({ className, open, children, ...props }, ref) => {
+  React.HTMLAttributes<HTMLDivElement> & { open?: boolean; onOpenChange?: (open: boolean) => void }
+>(({ className, open, onOpenChange, children, ...props }, ref) => {
   return (
     <div
       ref={ref}

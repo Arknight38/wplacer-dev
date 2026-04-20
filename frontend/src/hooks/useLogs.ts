@@ -14,7 +14,8 @@ export function useLogs() {
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname;
-    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    // Always connect to backend port 3000 (or use env variable in production)
+    const port = import.meta.env.VITE_BACKEND_PORT || '3000';
 
     const ws = new WebSocket(`${protocol}//${host}:${port}`);
     wsRef.current = ws;

@@ -8,37 +8,75 @@ export default function LogsViewer() {
   const [filterText, setFilterText] = useState('');
   const [filterType, setFilterType] = useState('');
   const [logsMode, setLogsMode] = useState<'logs' | 'errors'>('logs');
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-    
-    const ws = new WebSocket(`${protocol}//${host}:${port}`);
-    wsRef.current = ws;
+    let isActive = true;
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: logsMode }));
+    const connect = () => {
+      if (!isActive) return;
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname;
+      const port = '3000';
+
+      // Close any existing connection first
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+
+      const ws = new WebSocket(`${protocol}//${host}:${port}`);
+      wsRef.current = ws;
+      setConnectionError(null);
+
+      ws.onopen = () => {
+        if (!isActive) {
+          ws.close();
+          return;
+        }
+        setIsConnected(true);
+        ws.send(JSON.stringify({ type: logsMode }));
+      };
+
+      ws.onmessage = (event) => {
+        if (!isActive) return;
+        setLogs((prev) => {
+          const newLogs = [...prev, event.data];
+          return newLogs.slice(-2000);
+        });
+      };
+
+      ws.onerror = () => {
+        if (!isActive) return;
+        setIsConnected(false);
+        setConnectionError('Connection error');
+      };
+
+      ws.onclose = () => {
+        if (!isActive) return;
+        setIsConnected(false);
+        // Auto-reconnect after 2 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (isActive) connect();
+        }, 2000);
+      };
     };
 
-    ws.onmessage = (event) => {
-      setLogs((prev) => {
-        const newLogs = [...prev, event.data];
-        return newLogs.slice(-2000); // Keep last 2000 lines
-      });
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket closed');
-    };
+    connect();
 
     return () => {
-      ws.close();
+      isActive = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, [logsMode]);
 
@@ -128,6 +166,16 @@ export default function LogsViewer() {
               Return
             </button>
           </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-500' : connectionError ? 'bg-red-500' : 'bg-yellow-500'
+              }`}
+            />
+            <span className="text-muted-foreground">
+              {isConnected ? 'Connected' : connectionError ? connectionError : 'Connecting...'}
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -135,7 +183,9 @@ export default function LogsViewer() {
         <CardContent className="p-4">
           <div className="logs-container bg-muted p-4 rounded-lg min-h-96 max-h-96 overflow-y-auto font-mono text-sm">
             {filteredLogs.length === 0 ? (
-              <span className="text-muted-foreground">Loading logs...</span>
+              <span className="text-muted-foreground">
+                {isConnected ? 'Waiting for logs...' : connectionError ? 'Connection error - retrying...' : 'Connecting to server...'}
+              </span>
             ) : (
               filteredLogs.map((log, index) => (
                 <div key={index} className="py-1 border-b border-border last:border-0">{log}</div>

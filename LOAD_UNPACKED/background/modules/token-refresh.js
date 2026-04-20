@@ -1,9 +1,12 @@
 // --- Token Refresh Logic ---
-import { TOKEN_WAIT_THRESHOLD_MS, tokenWaitStartTime, isReloading, autoReloadEnabled, autoClearEnabled, setTokenWaitStartTime, setIsReloading } from './constants.js';
+import { TOKEN_WAIT_THRESHOLD_MS, tokenWaitStartTime, isReloading, autoReloadEnabled, autoClearEnabled, setTokenWaitStartTime, setIsReloading, getBotActive } from './constants.js';
 import { getSettings, getServerUrl } from './core.js';
 import { clearPawtectCache } from './user-management.js';
 
 export const pollForTokenRequest = async () => {
+    if (!getBotActive()) {
+        return; // Don't poll when bot is not active
+    }
     console.log("wplacer: Polling server for token request...");
     try {
         const settings = await getSettings();

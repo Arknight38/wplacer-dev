@@ -96,6 +96,34 @@ export default function AddTemplate() {
     }));
   };
 
+  const fetchOverlayCoords = async () => {
+    try {
+      const response = await axios.get('/overlay/coords');
+      if (response.data.coords) {
+        const { worldX, worldY } = response.data.coords;
+        // Convert world coordinates to template coordinates
+        const tileX = Math.floor(worldX / 1000);
+        const tileY = Math.floor(worldY / 1000);
+        const pixelX = worldX % 1000;
+        const pixelY = worldY % 1000;
+        setTx(tileX.toString());
+        setTy(tileY.toString());
+        setPx(pixelX.toString());
+        setPy(pixelY.toString());
+        success('Coordinates Fetched', `Overlay anchor: world(${worldX}, ${worldY})`);
+      } else {
+        showError('No Coordinates', 'No overlay coordinates available. Click on the canvas in wplace.live first.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch overlay coords:', error);
+      showError('Fetch Failed', 'Failed to fetch overlay coordinates');
+    }
+  };
+
+  const openWplace = () => {
+    window.open('https://wplace.live/', '_blank');
+  };
+
   // Color palette from backend constants
   const colorPalette: Record<string, number> = {
     '0,0,0': 1,
@@ -415,6 +443,22 @@ export default function AddTemplate() {
                         className="w-full px-3 py-2 bg-input border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring relative z-50"
                       />
                     </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={fetchOverlayCoords}
+                      className="flex-1 px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Fetch Overlay Coords
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openWplace}
+                      className="flex-1 px-3 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
+                    >
+                      Open wplace.live
+                    </button>
                   </div>
                 </div>
               </CollapsibleContent>

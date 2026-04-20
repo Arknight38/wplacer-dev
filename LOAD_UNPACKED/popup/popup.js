@@ -12,12 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    let initialPort = 80;
+    let initialPort = 3000;
     let tokenWaitingStatus = false;
 
     // Load current settings
     chrome.storage.local.get(['wplacerPort', 'autoReload', 'autoClear'], (result) => {
-        initialPort = result.wplacerPort || 80;
+        initialPort = result.wplacerPort || 3000;
         portInput.value = initialPort;
         
         // Set auto reload and auto clear settings (default to true if not set)
@@ -31,14 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab switching functionality
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // Remove active class from all tabs and contents
+            // Remove active class from all tabs and hide all contents
             tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            // Add active class to clicked tab and corresponding content
+            tabContents.forEach(c => {
+                c.classList.remove('active');
+                c.style.display = 'none';
+            });
+
+            // Add active class to clicked tab and show corresponding content
             tab.classList.add('active');
             const tabId = tab.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
+            const content = document.getElementById(tabId);
+            content.classList.add('active');
+            content.style.display = 'block';
         });
     });
     
@@ -147,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Manually send cookie
     sendCookieBtn.addEventListener('click', () => {
+        console.log("wplacer: Add/Update User button clicked");
         statusEl.textContent = 'Sending cookie to server...';
         setButtonLoading(sendCookieBtn, true);
         
@@ -223,5 +229,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.textContent = `Error: ${response.error}`;
             }
         });
+    });
+
+    // --- Overlay Image Handling ---
+    const overlayFile = document.getElementById('overlayFile');
+    const overlayPreview = document.getElementById('overlayPreview');
+    const overlayThumb = document.getElementById('overlayThumb');
+    const overlayAnchorText = document.getElementById('overlayAnchorText');
+    const openWplaceBtn = document.getElementById('openWplaceBtn');
+
+    // Load saved anchor display
+    chrome.storage.local.get(['overlayAnchorX', 'overlayAnchorY', 'overlayImageData'], (r) => {
+        if (r.overlayAnchorX !== undefined) {
+            overlayAnchorText.textContent = `Anchor: ${r.overlayAnchorX}, ${r.overlayAnchorY}`;
+        }
+        if (r.overlayImageData) {
+            overlayThumb.src = r.overlayImageData;
+            overlayPreview.style.display = 'block';
+        }
+    });
+
+    // Listen for anchor updates while popup is open
+    chrome.storage.onChanged.addListener((changes) => {
+        if (changes.overlayAnchorX || changes.overlayAnchorY) {
+            chrome.storage.local.get(['overlayAnchorX', 'overlayAnchorY'], (r) => {
+                overlayAnchorText.textContent = `Anchor: ${r.overlayAnchorX}, ${r.overlayAnchorY}`;
+            });
+        }
+    });
+
+    overlayFile.addEventListener('change', () => {
+        const file = overlayFile.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            overlayThumb.src = dataUrl;
+            overlayPreview.style.display = 'block';
+            // Store and send to offscreen
+            chrome.storage.local.get(['overlayAnchorX', 'overlayAnchorY'], (r) => {
+                chrome.storage.local.set({ overlayImageData: dataUrl });
+                chrome.runtime.sendMessage({
+                    action: 'setOverlayImage',
+                    dataUrl,
+                    worldX: r.overlayAnchorX ?? 0,
+                    worldY: r.overlayAnchorY ?? 0
+                });            });
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Open wplace.live button
+    openWplaceBtn.addEventListener('click', () => {
+        chrome.tabs.create({ url: 'https://wplace.live/' });
     });
 });
