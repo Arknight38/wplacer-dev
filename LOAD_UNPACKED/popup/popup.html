@@ -38,49 +38,53 @@
 
         <!-- Settings Tab -->
         <div id="settings" class="tab-content">
-            <div class="settings">
-                <div class="row">
-                    <label for="port">Server Port</label>
-                    <input type="number" id="port" min="1" max="65535" value="3000">
+            <div class="stack">
+                <div class="settings">
+                    <div class="row">
+                        <label for="port">Server Port</label>
+                        <input type="number" id="port" min="1" max="65535" value="3000" class="no-spinner">
+                    </div>
                 </div>
-            </div>
-            <div class="settings">
-                <div class="row">
-                    <label for="autoReload">Auto Reload</label>
-                    <input type="checkbox" id="autoReload">
+                <div class="settings">
+                    <div class="row">
+                        <label for="autoReload">Auto Reload</label>
+                        <input type="checkbox" id="autoReload">
+                    </div>
+                    <span class="setting-description">
+                        Automatically reload when tokens are needed
+                    </span>
                 </div>
-                <span class="setting-description">
-                    Automatically reload when tokens are needed
-                </span>
-            </div>
-            <div class="settings">
-                <div class="row">
-                    <label for="autoClear">Auto Clear Cache</label>
-                    <input type="checkbox" id="autoClear">
+                <div class="settings">
+                    <div class="row">
+                        <label for="autoClear">Auto Clear Cache</label>
+                        <input type="checkbox" id="autoClear">
+                    </div>
+                    <span class="setting-description">
+                        Clear token cache if waiting too long
+                    </span>
                 </div>
-                <span class="setting-description">
-                    Clear token cache if waiting too long
-                </span>
-            </div>
 
-            <div class="divider"></div>
+                <div class="divider"></div>
 
-            <button id="saveSettingsBtn">Save Settings</button>
+                <button id="saveSettingsBtn">Save Settings</button>
+            </div>
         </div>
 
         <!-- Overlay Tab -->
         <div id="overlay" class="tab-content">
-            <div class="settings" style="flex-direction:column; align-items:flex-start;">
-                <label>Overlay Image</label>
-                <input type="file" id="overlayFile" accept="image/png,image/jpeg,image/webp"
-                       style="font-size:12px; color:var(--text-secondary); width:100%;">
-                <span class="setting-description">Click the canvas to anchor. Image top-left = click point.</span>
+            <div class="stack">
+                <div class="settings" style="flex-direction:column; align-items:flex-start;">
+                    <label>Overlay Image</label>
+                    <input type="file" id="overlayFile" accept="image/png,image/jpeg,image/webp"
+                           style="font-size:12px; color:var(--text-secondary); width:100%;">
+                    <span class="setting-description">Click the canvas to anchor. Image top-left = click point.</span>
+                </div>
+                <div id="overlayPreview" style="display:none; margin-top:4px; text-align:center;">
+                    <img id="overlayThumb" style="max-width:100%; max-height:80px; border-radius:4px; opacity:0.8;">
+                    <p id="overlayAnchorText" style="font-size:11px; margin:2px 0;"></p>
+                </div>
+                <button id="openWplaceBtn" style="margin-top:8px;">Open wplace.live</button>
             </div>
-            <div id="overlayPreview" style="display:none; margin-top:4px; text-align:center;">
-                <img id="overlayThumb" style="max-width:100%; max-height:80px; border-radius:4px; opacity:0.8;">
-                <p id="overlayAnchorText" style="font-size:11px; margin:2px 0;"></p>
-            </div>
-            <button id="openWplaceBtn" style="margin-top:8px;">Open wplace.live</button>
         </div>
     </div>
     <script src="popup.js"></script>

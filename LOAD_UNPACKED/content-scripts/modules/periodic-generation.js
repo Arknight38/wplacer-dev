@@ -1,8 +1,5 @@
 // --- Periodic Token Generation ---
 
-import { PERIODIC_GEN_MS } from './constants.js';
-import { requestInPageTokenWithTimeout } from './event-listeners.js';
-
 let periodicTimer = null;
 let periodicBusy = false;
 
@@ -12,25 +9,25 @@ const periodicTick = async () => {
     if (periodicBusy) return;
     periodicBusy = true;
     try {
-        requestInPageTokenWithTimeout(15000, true);
+        window.requestInPageTokenWithTimeout(15000, true);
     } finally {
         setTimeout(() => { periodicBusy = false; }, 2000);
     }
 };
 
-export const startPeriodicGeneration = () => {
+const startPeriodicGeneration = () => {
     if (periodicTimer) return;
-    periodicTimer = setInterval(periodicTick, PERIODIC_GEN_MS);
+    periodicTimer = setInterval(periodicTick, 20000); // PERIODIC_GEN_MS = 20000
     console.log('wplacer: Periodic token generation started');
 };
 
-export const stopPeriodicGeneration = () => {
+const stopPeriodicGeneration = () => {
     if (!periodicTimer) return;
     try { clearInterval(periodicTimer); } catch {}
     periodicTimer = null;
 };
 
-export function setupPeriodicGeneration() {
+function setupPeriodicGeneration() {
     if (location.hostname.endsWith('wplace.live')) {
         window.addEventListener('beforeunload', () => stopPeriodicGeneration(), { once: true });
     }

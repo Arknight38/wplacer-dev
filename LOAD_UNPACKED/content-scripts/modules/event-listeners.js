@@ -1,9 +1,20 @@
 // --- Event Listeners ---
 
-import { RELOAD_FLAG, GEN_REQUEST_TYPE, GEN_TOKEN_TYPE } from './constants.js';
-import { generateRandomHex, postToken, trySendPair, pending } from './token-handling.js';
+// Shared state (will be populated by token-handling.js)
+let pending = { turnstile: null, pawtect: null };
+let trySendPair = () => {};
+let generateRandomHex = (length = 32) => {
+    const bytes = new Uint8Array(Math.ceil(length / 2));
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
+};
+let postToken = (token, pawtectToken) => {};
 
-export function setupEventListeners() {
+function setupEventListeners() {
+    const RELOAD_FLAG = 'wplacer_reload_in_progress';
+    const GEN_REQUEST_TYPE = 'WPLACER_TURNSTILE_REQUEST';
+    const GEN_TOKEN_TYPE = 'WPLACER_TURNSTILE_TOKEN';
+
     // Listen for messages from the Cloudflare Turnstile iframe (primary method)
     window.addEventListener('message', (event) => {
         if (event.origin !== "https://challenges.cloudflare.com" || !event.data) {
@@ -47,6 +58,10 @@ export function setupEventListeners() {
 }
 
 const requestInPageTokenWithTimeout = (timeoutMs = 55000, fallbackToReload = false) => {
+    const RELOAD_FLAG = 'wplacer_reload_in_progress';
+    const GEN_REQUEST_TYPE = 'WPLACER_TURNSTILE_REQUEST';
+    const GEN_TOKEN_TYPE = 'WPLACER_TURNSTILE_TOKEN';
+
     let done = false;
     const timeout = setTimeout(() => {
         if (done) return;
@@ -76,5 +91,3 @@ const requestInPageTokenWithTimeout = (timeoutMs = 55000, fallbackToReload = fal
     window.addEventListener('message', onToken, true);
     window.postMessage({ type: GEN_REQUEST_TYPE }, '*');
 };
-
-export { requestInPageTokenWithTimeout };

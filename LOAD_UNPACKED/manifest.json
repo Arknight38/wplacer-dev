@@ -35,9 +35,14 @@
         "https://wplace.live/*"
       ],
       "js": [
+        "content-scripts/modules/constants.js",
+        "content-scripts/modules/token-handling.js",
+        "content-scripts/modules/event-listeners.js",
+        "content-scripts/modules/script-injection.js",
+        "content-scripts/modules/overlay-bridge.js",
+        "content-scripts/modules/periodic-generation.js",
         "content-scripts/content.js"
       ],
-      "type": "module",
       "run_at": "document_start"
     }
   ],

@@ -1,5 +1,5 @@
 // content-scripts/modules/overlay-bridge.js
-export function setupOverlayBridge() {
+function setupOverlayBridge() {
     window.addEventListener('message', (event) => {
         if (event.source !== window) return;
         if (event.data?.source !== 'wplacer-overlay') return;

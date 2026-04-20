@@ -1,7 +1,5 @@
 // --- Token Handling ---
 
-import { RELOAD_FLAG } from './constants.js';
-
 const sentTokens = new Set();
 const pending = {
     turnstile: null,
@@ -12,14 +10,14 @@ const pending = {
 const randomInt = (max) => Math.floor(Math.random() * max);
 
 // Generate a random hex fingerprint (default 32 chars)
-export const generateRandomHex = (length = 32) => {
+const generateRandomHex = (length = 32) => {
     const bytes = new Uint8Array(Math.ceil(length / 2));
     crypto.getRandomValues(bytes);
     return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
 };
 
 // Create a per-load fingerprint and expose it for page usage
-export function initializeFingerprint() {
+function initializeFingerprint() {
     try {
         const fp = generateRandomHex(32);
         window.wplacerFP = fp;
@@ -29,13 +27,13 @@ export function initializeFingerprint() {
 }
 
 // Try to get the current color order from the page
-export const getCurrentColorOrder = () => {
+const getCurrentColorOrder = () => {
     try {
         // Check for color order in window/global objects (fastest method)
         if (window.app && window.app.palette && Array.isArray(window.app.palette.colors)) {
             return window.app.palette.colors;
         }
-        
+
         // Try to find color order in localStorage
         const storedPalette = localStorage.getItem('wplace_palette');
         if (storedPalette) {
@@ -46,7 +44,7 @@ export const getCurrentColorOrder = () => {
                 }
             } catch {}
         }
-        
+
         // Look for color palette elements in the DOM (slowest method)
         const colorPalette = document.querySelector('[data-testid="palette"]');
         if (colorPalette) {
@@ -54,8 +52,8 @@ export const getCurrentColorOrder = () => {
             if (colorButtons && colorButtons.length > 0) {
                 const colors = [];
                 colorButtons.forEach(button => {
-                    const colorIndex = button.getAttribute('data-color-index') || 
-                                      button.getAttribute('data-index') || 
+                    const colorIndex = button.getAttribute('data-color-index') ||
+                                      button.getAttribute('data-index') ||
                                       button.getAttribute('data-id');
                     if (colorIndex && !isNaN(parseInt(colorIndex))) {
                         colors.push(parseInt(colorIndex));
@@ -79,17 +77,17 @@ const postToken = (token, pawtectToken) => {
     sentTokens.add(token);
     console.log(`wplacer: CAPTCHA Token Captured. Sending to server.`);
     const fp = window.wplacerFP || sessionStorage.getItem('wplacer_fp') || generateRandomHex(32);
-    
+
     const colors = getCurrentColorOrder();
     if (colors) {
         console.log('wplacer: Sending token with color order:', colors);
     }
-    
+
     if (!pawtectToken) {
         pending.turnstile = token;
         trySendPair();
     }
-    
+
     chrome.runtime.sendMessage({
         type: "SEND_TOKEN",
         token: token,
@@ -107,13 +105,15 @@ const trySendPair = () => {
             turnstile: pending.turnstile,
             pawtect: pending.pawtect
         });
-        
+
         pending.turnstile = null;
         pending.pawtect = null;
     }
 };
 
-export function setupTokenHandling() {
+function setupTokenHandling() {
+    const RELOAD_FLAG = 'wplacer_reload_in_progress';
+
     // Check if this load was triggered by our extension
     if (sessionStorage.getItem(RELOAD_FLAG)) {
         sessionStorage.removeItem(RELOAD_FLAG);
@@ -170,5 +170,3 @@ export function setupTokenHandling() {
         } catch {}
     }, true);
 }
-
-export { postToken, trySendPair, pending };

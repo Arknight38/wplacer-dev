@@ -1,7 +1,7 @@
 // --- Script Injection ---
 
 // Inject the page-level Turnstile generator so it runs in the page context
-export function injectTurnstileGenerator() {
+function injectTurnstileGenerator() {
     try {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('injected/turnstile_inject.js');
@@ -16,7 +16,7 @@ export function injectTurnstileGenerator() {
 // Inject pawtect helper on load and allow manual reinject via Ctrl+Shift+P
 let pawtectInjected = false;
 
-export function injectPawtectHelper() {
+function injectPawtectHelper() {
     if (pawtectInjected) return;
     try {
         const script = document.createElement('script');
@@ -30,7 +30,7 @@ export function injectPawtectHelper() {
     }
 }
 
-export function injectOverlayScript() {
+function injectOverlayScript() {
     try {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('injected/overlay_inject.js');
@@ -43,7 +43,7 @@ export function injectOverlayScript() {
     }
 }
 
-export function setupScriptInjection() {
+function setupScriptInjection() {
     // Inject turnstile generator
     injectTurnstileGenerator();
 
