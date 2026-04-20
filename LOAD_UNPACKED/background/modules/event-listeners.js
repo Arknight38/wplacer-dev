@@ -1,5 +1,5 @@
 // --- Event Listeners ---
-import { tokenWaitStartTime, autoReloadEnabled, autoClearEnabled, setTokenWaitStartTime, getPollInterval } from './constants.js';
+import { getTokenWaitStartTime, getAutoReloadEnabled, getAutoClearEnabled, setTokenWaitStartTime, getPollInterval } from './constants.js';
 import { getSettings, getServerUrl } from './core.js';
 import { startPolling } from './polling.js';
 import { sendCookie, clearPawtectCache, quickLogout } from './user-management.js';
@@ -38,8 +38,9 @@ export function setupEventListeners() {
             return true;
         }
         if (request.action === "getTokenStatus") {
-            if (tokenWaitStartTime) {
-                const waitTimeMs = Date.now() - tokenWaitStartTime;
+            const waitStart = getTokenWaitStartTime();
+            if (waitStart) {
+                const waitTimeMs = Date.now() - waitStart;
                 const waitTimeSec = Math.floor(waitTimeMs / 1000);
                 sendResponse({ waiting: true, waitTime: waitTimeSec });
             } else {
@@ -75,13 +76,14 @@ export function setupEventListeners() {
             return true;
         }
         if (request.type === "SEND_TOKEN") {
-            if (tokenWaitStartTime) {
+            if (getTokenWaitStartTime()) {
                 console.log("wplacer: Token received. Resetting wait timer.");
                 setTokenWaitStartTime(null);
             }
-            
+
+            // Async handler - return true to keep message channel open
             getServerUrl("/t").then(url => {
-                fetch(url, {
+                return fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -91,24 +93,34 @@ export function setupEventListeners() {
                         colors: request.colors || null
                     })
                 });
+            }).then(response => {
+                if (response && !response.ok) {
+                    console.error("wplacer: Failed to send token, status:", response.status);
+                } else if (response) {
+                    console.log("wplacer: Token sent successfully");
+                }
+            }).catch(error => {
+                console.error("wplacer: Error sending token:", error);
             });
+            return true; // Keep channel open for async response
         }
 
         if (request.action === "tokenPairReceived") {
             if (request.turnstile && request.pawtect) {
                 console.log("wplacer: Token pair received");
-                if (tokenWaitStartTime) {
+                if (getTokenWaitStartTime()) {
                     console.log("wplacer: Token pair received. Resetting wait timer.");
                     setTokenWaitStartTime(null);
-                    
+
                     chrome.runtime.sendMessage({
                         action: "tokenStatusChanged",
                         waiting: false
                     }).catch(() => {});
                 }
-                
+
+                // Async handler - wait for fetch to complete before sending response
                 getServerUrl("/t").then(url => {
-                    fetch(url, {
+                    return fetch(url, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -117,21 +129,23 @@ export function setupEventListeners() {
                             fp: request.fp || null,
                             colors: request.colors || null
                         })
-                    }).then(response => {
-                        if (response.ok) {
-                            console.log("wplacer: Token pair sent successfully");
-                        } else {
-                            console.error("wplacer: Failed to send token pair, status:", response.status);
-                        }
-                    }).catch(error => {
-                        console.error("wplacer: Error sending token pair:", error);
                     });
+                }).then(response => {
+                    if (response.ok) {
+                        console.log("wplacer: Token pair sent successfully");
+                        sendResponse({ success: true });
+                    } else {
+                        console.error("wplacer: Failed to send token pair, status:", response.status);
+                        sendResponse({ success: false, error: `Server responded with status: ${response.status}` });
+                    }
+                }).catch(error => {
+                    console.error("wplacer: Error sending token pair:", error);
+                    sendResponse({ success: false, error: error.message });
                 });
-                sendResponse({ success: true });
             } else {
                 sendResponse({ success: false, error: "Missing turnstile or pawtect token" });
             }
-            return true;
+            return true; // Keep channel open for async response
         }
 
         // --- Overlay Handlers ---

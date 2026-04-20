@@ -220,7 +220,7 @@ export class WPlacer {
           localPy = globalPy % 1000;
 
         const tile = this.tileManager.getTile(targetTx, targetTy);
-        if (!tile || !tile.data[localPx]) continue;
+        if (!tile || !tile.data[localPx]?.[localPy]) continue;
 
         const canvasColor = tile.data[localPx][localPy];
         const neighbors = [

@@ -1,10 +1,13 @@
 // --- Token Handling ---
 
 const sentTokens = new Set();
-const pending = {
-    turnstile: null,
-    pawtect: null
-};
+
+// Expose pending on window for cross-script module access
+// NOTE: This is needed because content script modules share scope via window
+if (!window.pending) {
+    window.pending = { turnstile: null, pawtect: null };
+}
+const pending = window.pending;
 
 // Generate a random integer between min and max (inclusive)
 const randomInt = (max) => Math.floor(Math.random() * max);

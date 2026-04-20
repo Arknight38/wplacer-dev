@@ -32,12 +32,18 @@ function injectPawtectHelper() {
 
 function injectOverlayScript() {
     try {
+        console.log('wplacer: Attempting to inject overlay script...');
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('injected/overlay_inject.js');
         script.async = false;
         (document.head || document.documentElement).appendChild(script);
-        script.onload = () => script.remove();
-        console.log('wplacer: overlay script injected.');
+        script.onload = () => {
+            console.log('wplacer: overlay script injected and loaded.');
+            script.remove();
+        };
+        script.onerror = (e) => {
+            console.error('wplacer: Failed to load overlay script:', e);
+        };
     } catch (e) {
         console.warn('wplacer: Failed to inject overlay script', e);
     }

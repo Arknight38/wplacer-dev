@@ -220,7 +220,7 @@ router.get('/templates', (_req: Request, res: Response) => {
     try {
       let shareCode: string | null = null;
       try {
-        shareCode = manager.template?.shareCode || shareCodeFromTemplate(manager.template);
+        shareCode = manager.template?.shareCode || (manager.template ? shareCodeFromTemplate(manager.template) : null);
       } catch (shareCodeError: any) {
         log('WARN', 'Templates', `Failed to generate share code for template '${id}' (${manager.name}): ${shareCodeError.message}`);
       }

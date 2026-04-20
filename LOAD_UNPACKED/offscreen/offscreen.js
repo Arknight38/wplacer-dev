@@ -1,6 +1,7 @@
 // offscreen/offscreen.js
 // Handles OffscreenCanvas compositing — same logic as Blue Marble's Z() method
 
+const TILE_GRID_SIZE = 4;  // Number of tiles per row/column in wrap cycle (4 = 4000x4000 world)
 const TILE_SIZE = 1000;
 const SCALE = 3; // Blue Marble's $e
 
@@ -45,7 +46,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                     sendResponse({ buffer: result });
                 })
                 .catch(e => {
-                    console.error('[wplacer offscreen] Failed to composite tile:', e);
+                    console.error('[wplacer offscreen] Failed to composite tile:', e.name, e.message, e);
                     sendResponse({ buffer: null });
                 });
             return true;
@@ -54,6 +55,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 });
 
 async function compositeTile(tileX, tileY, buffer) {
+    if (!buffer || buffer.byteLength === 0) {
+        console.error('[wplacer offscreen] Invalid buffer: null or empty');
+        throw new Error('Invalid buffer');
+    }
+    console.log('[wplacer offscreen] Buffer size:', buffer.byteLength, 'bytes');
+    
     const blob = new Blob([buffer], { type: 'image/png' });
     const bitmap = await createImageBitmap(blob);
 
@@ -64,9 +71,9 @@ async function compositeTile(tileX, tileY, buffer) {
     console.log('[wplacer offscreen] Compositing: overlayBitmap exists:', !!overlayBitmap, 'overlayAnchor:', overlayAnchor);
 
     if (overlayBitmap && overlayAnchor) {
-        // World origin of this tile (matches Blue Marble's tileX % 4 * 1000)
-        const tileWorldX = (tileX % 4) * TILE_SIZE;
-        const tileWorldY = (tileY % 4) * TILE_SIZE;
+        // World origin of this tile (must match overlay_inject.js calculation)
+        const tileWorldX = (tileX % TILE_GRID_SIZE) * TILE_SIZE;
+        const tileWorldY = (tileY % TILE_GRID_SIZE) * TILE_SIZE;
 
         // Where the overlay's top-left falls inside this tile, in canvas pixels
         const localX = (overlayAnchor.worldX - tileWorldX) * SCALE;

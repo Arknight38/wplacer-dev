@@ -12,6 +12,10 @@ import { WebSocketServer } from 'ws';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import gradient from 'gradient-string';
+import { fileURLToPath } from 'node:url';
+
+// ES module equivalent of __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import routes
 import logsRouter from './routes/logs.js';
@@ -34,7 +38,7 @@ import { loadSettings } from './config/settings.js';
 import { log, logger, wsLogClients, wsErrorClients } from './utils/logger.js';
 import { loadJSON, saveJSON } from './utils/helpers.js';
 import type { User, TemplateData } from './types/index.js';
-import { setActiveBrowserUsers, setActiveTemplateUsers, setTemplateQueue, setActivePaintingTasks, processQueue } from './services/template-manager.js';
+import { setActiveBrowserUsers, setActiveTemplateUsers, setTemplateQueue, setActivePaintingTasks, processQueue, TemplateManager } from './services/template-manager.js';
 
 // Import route state setters
 import {
@@ -68,20 +72,20 @@ const templates = loadJSON<Record<string, TemplateData>>(TEMPLATES_PATH);
 const activeBrowserUsers = new Set<string>();
 const activeTemplateUsers = new Set<string>();
 const templateQueue: string[] = [];
-const activePaintingTasks = 0;
+const activePaintingTasks = { count: 0 };
 
 // Initialize global state for services
 setActiveBrowserUsers(activeBrowserUsers);
 setActiveTemplateUsers(activeTemplateUsers);
 setTemplateQueue(templateQueue);
-setActivePaintingTasks(activePaintingTasks);
+setActivePaintingTasks(activePaintingTasks.count);
 
 // Initialize route state
 setUsersRouteState(users);
-setTemplatesRouteState({} as any); // Will be populated after migration
+setTemplatesRouteState({} as Record<string, TemplateManager>); // Will be populated after migration
 setSettingsRouteState(currentSettings);
 setUsersRouteState2(users);
-setUsersTemplatesState({} as any);
+setUsersTemplatesState({} as Record<string, TemplateManager>);
 setSettingsRouteState2(currentSettings);
 setUsersActiveBrowserUsers(activeBrowserUsers);
 
@@ -124,7 +128,7 @@ setUsersSaveTemplates(saveTemplates);
 setSaveSettings(saveSettingsFn);
 setTemplatesSaveTemplates(saveTemplates);
 setTemplatesTemplateQueue(templateQueue);
-setTemplatesProcessQueueFn(() => processQueue(getTemplatesFromRoutes() as any));
+setTemplatesProcessQueueFn(() => processQueue(getTemplatesFromRoutes()));
 
 // Express setup
 const app = express();
@@ -198,6 +202,21 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDist));
+  
+  // SPA fallback - serve index.html for non-API routes
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/ws') && !req.path.startsWith('/api-docs')) {
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    } else {
+      next();
+    }
+  });
+}
 
 // Error handling middleware (must be after routes)
 app.use(notFoundHandler);

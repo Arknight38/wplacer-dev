@@ -1,14 +1,11 @@
 // --- Event Listeners ---
 
-// Shared state (will be populated by token-handling.js)
-let pending = { turnstile: null, pawtect: null };
-let trySendPair = () => {};
-let generateRandomHex = (length = 32) => {
-    const bytes = new Uint8Array(Math.ceil(length / 2));
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
-};
-let postToken = (token, pawtectToken) => {};
+// NOTE: These functions/variables are defined in token-handling.js and shared via global scope:
+// - pending: object with turnstile and pawtect tokens
+// - trySendPair: function to attempt sending token pair
+// - generateRandomHex: function to generate random hex string
+// - postToken: function to send token to background script
+// Do NOT redeclare these with let/const or they will shadow the global definitions.
 
 function setupEventListeners() {
     const RELOAD_FLAG = 'wplacer_reload_in_progress';
@@ -23,7 +20,9 @@ function setupEventListeners() {
         try {
             const token = String(event.data.token || event.data.response || event.data['cf-turnstile-response'] || '');
             if (token) {
-                pending.turnstile = token;
+                // Access global pending from token-handling.js
+                window.pending = window.pending || { turnstile: null, pawtect: null };
+                window.pending.turnstile = token;
                 const fp = window.wplacerFP || sessionStorage.getItem('wplacer_fp') || generateRandomHex(32);
                 const body = { colors: [0], coords: [1, 1], fp: String(fp), t: String(token) };
                 try {
@@ -34,9 +33,10 @@ function setupEventListeners() {
                     });
                 } catch {}
                 if (window.wplacerPawtectToken) {
-                    pending.pawtect = window.wplacerPawtectToken;
+                    window.pending.pawtect = window.wplacerPawtectToken;
                     try { delete window.wplacerPawtectToken; } catch {}
                 }
+                // Call global trySendPair from token-handling.js
                 trySendPair();
             }
         } catch {
@@ -57,7 +57,8 @@ function setupEventListeners() {
     });
 }
 
-const requestInPageTokenWithTimeout = (timeoutMs = 55000, fallbackToReload = false) => {
+// Expose on window for periodic-generation.js to access
+window.requestInPageTokenWithTimeout = (timeoutMs = 55000, fallbackToReload = false) => {
     const RELOAD_FLAG = 'wplacer_reload_in_progress';
     const GEN_REQUEST_TYPE = 'WPLACER_TURNSTILE_REQUEST';
     const GEN_TOKEN_TYPE = 'WPLACER_TURNSTILE_TOKEN';
@@ -80,6 +81,7 @@ const requestInPageTokenWithTimeout = (timeoutMs = 55000, fallbackToReload = fal
             done = true;
             clearTimeout(timeout);
             if (event.data.token) {
+                // Call global postToken from token-handling.js
                 postToken(event.data.token);
             } else if (fallbackToReload) {
                 console.warn('wplacer: Generator responded without token. Reloading.');

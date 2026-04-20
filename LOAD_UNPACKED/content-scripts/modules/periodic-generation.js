@@ -30,5 +30,6 @@ const stopPeriodicGeneration = () => {
 function setupPeriodicGeneration() {
     if (location.hostname.endsWith('wplace.live')) {
         window.addEventListener('beforeunload', () => stopPeriodicGeneration(), { once: true });
+        startPeriodicGeneration();
     }
 }

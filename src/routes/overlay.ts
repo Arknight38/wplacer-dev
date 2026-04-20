@@ -19,6 +19,9 @@ let overlayCoords: {
   timestamp: number;
 } | null = null;
 
+// Allow coordinates to be read multiple times within this window (milliseconds)
+const COORDS_READ_WINDOW_MS = 5000;
+
 /**
  * @swagger
  * /overlay/coords:
@@ -91,9 +94,12 @@ router.post('/overlay/coords', (req: Request, res: Response) => {
  *                   nullable: true
  */
 router.get('/overlay/coords', (_req: Request, res: Response) => {
-  // Clear coordinates after retrieval (one-time read)
+  // Only clear coordinates if they're older than the read window
+  // This allows multiple consumers to read within a short time period
   const coords = overlayCoords;
-  overlayCoords = null;
+  if (coords && Date.now() - coords.timestamp > COORDS_READ_WINDOW_MS) {
+    overlayCoords = null;
+  }
   res.json({ coords });
 });
 

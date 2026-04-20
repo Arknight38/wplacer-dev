@@ -190,7 +190,14 @@ export class TemplateManager {
     this.masterName = this.ctx.users[this.masterId]?.name || 'Unknown';
     this.sleepAbortController = null;
 
-    this.totalPixels = this.template.data.flat().filter((p) => p !== 0).length;
+    // Count non-zero pixels efficiently without creating intermediate arrays
+    let pixelCount = 0;
+    for (const row of this.template.data) {
+      for (const pixel of row) {
+        if (pixel !== 0) pixelCount++;
+      }
+    }
+    this.totalPixels = pixelCount;
     this.pixelsRemaining = this.totalPixels;
     this.currentPixelSkip = this.ctx.settings.pixelSkip ?? 1;
 
@@ -336,11 +343,21 @@ export class TemplateManager {
     const isColorMode = this.ctx.settings.drawingOrder === 'color';
     if (isColorMode) {
       const mismatchedColors = new Set(mismatchedPixels.map((p: any) => p.color));
-      const allTemplateColors = this.template.data.flat().filter((c) => c > 0);
-      const colorCounts = allTemplateColors.reduce((acc: Record<number, number>, color: number) => ({ ...acc, [color]: (acc[color] || 0) + 1 }), {} as Record<number, number>);
+
+      // Single pass: count colors and collect unique colors without intermediate arrays
+      const colorCounts: Record<number, number> = {};
+      const uniqueColors = new Set<number>();
+      for (const row of this.template.data) {
+        for (const color of row) {
+          if (color > 0) {
+            colorCounts[color] = (colorCounts[color] || 0) + 1;
+            uniqueColors.add(color);
+          }
+        }
+      }
 
       const customOrder = this.ctx.getColorOrderForTemplate(this.templateId);
-      const sortedColors = [...new Set(allTemplateColors)];
+      const sortedColors = Array.from(uniqueColors);
 
       if (customOrder && customOrder.length > 0) {
         const orderMap = new Map(customOrder.map((id: number, index: number) => [id, index]));
@@ -432,26 +449,47 @@ export class TemplateManager {
   }
 
   async _findWorkingUserAndCheckPixels(): Promise<PixelCheckResult | null> {
-    // Create an array of promises that race to find a working user
-    const checkPromises = this.userQueue.map((userId, index) =>
+    // Filter out users that are immediately known to be invalid (suspended/missing)
+    // This prevents creating promises that would just return null
+    const validUserChecks = this.userQueue
+      .map((userId, index) => ({ userId, index }))
+      .filter(({ userId }) => {
+        const user = this.ctx.users[userId];
+        if (!user) return false;
+        if (user.suspendedUntil && Date.now() < user.suspendedUntil) return false;
+        return true;
+      });
+
+    // If no valid users, cycle queue and return null immediately
+    if (validUserChecks.length === 0) {
+      this._cycleQueueForFailedChecks();
+      return null;
+    }
+
+    // Create promises only for valid users
+    const checkPromises = validUserChecks.map(({ userId, index }) =>
       this._tryCheckPixelsWithUser(userId, index)
     );
 
     try {
       // Race all promises and return the first successful result
+      // If a check fails (returns null), it rejects so Promise.race continues
       const result = await Promise.race(
         checkPromises.map((p) =>
           p.then((result) => {
             if (result) return result;
-            // Return a sentinel that means "keep waiting"
-            return new Promise<never>(() => {});
+            // Reject with sentinel so Promise.race skips this one
+            throw new Error('USER_CHECK_FAILED');
           })
         )
       );
       return result;
-    } catch {
-      // All failed, cycle queue and return null
-      this._cycleQueueForFailedChecks();
+    } catch (error: any) {
+      // If all failed with USER_CHECK_FAILED, cycle queue
+      if (error.message === 'USER_CHECK_FAILED' ||
+          checkPromises.every(() => true)) { // All settled but none succeeded
+        this._cycleQueueForFailedChecks();
+      }
       return null;
     }
   }

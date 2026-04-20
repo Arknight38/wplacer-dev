@@ -2,12 +2,27 @@
 import { getServerUrl } from './core.js';
 
 export const sendCookie = async (callback) => {
-    const getCookie = (details) => new Promise(resolve => chrome.cookies.get(details, cookie => resolve(cookie)));
+    const getCookie = (details) => new Promise((resolve, reject) => {
+        chrome.cookies.get(details, (cookie) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else {
+                resolve(cookie);
+            }
+        });
+    });
 
-    const [jCookie, sCookie] = await Promise.all([
-        getCookie({ url: "https://backend.wplace.live", name: "j" }),
-        getCookie({ url: "https://backend.wplace.live", name: "s" })
-    ]);
+    let jCookie, sCookie;
+    try {
+        [jCookie, sCookie] = await Promise.all([
+            getCookie({ url: "https://backend.wplace.live", name: "j" }),
+            getCookie({ url: "https://backend.wplace.live", name: "s" })
+        ]);
+    } catch (error) {
+        console.error("wplacer: Failed to retrieve cookies:", error);
+        if (callback) callback({ success: false, error: `Failed to access cookies: ${error.message}` });
+        return;
+    }
 
     if (!jCookie) {
         if (callback) callback({ success: false, error: "Cookie 'j' not found. Are you logged in?" });

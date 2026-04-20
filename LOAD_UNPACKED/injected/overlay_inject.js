@@ -4,6 +4,11 @@
     const BRIDGE = 'wplacer-overlay';
     const blobQueue = new Map();
 
+    // Tile grid configuration - adjust these if wplace uses different wrapping
+    const TILE_GRID_SIZE = 4;  // Number of tiles per row/column in wrap cycle (4 = 4000x4000 world)
+    const TILE_SIZE = 1000;    // Pixels per tile
+    const WPLACE_ORIGIN = 'https://wplace.live';
+
     // --- Tile fetch interception ---
     const originalFetch = window.fetch;
     window.fetch = async function(...args) {
@@ -18,7 +23,7 @@
             const clone = response.clone();
             const blob = await clone.blob();
 
-            const segments = url.split('?')[0].split('/').filter(s => s && !isNaN(Number(s)));
+            const segments = url.split('?')[0].split('/').filter(s => s && !isNaN(parseInt(s)));
             const tileX = parseInt(segments[segments.length - 2]);
             const tileY = parseInt(segments[segments.length - 1]);
             const blobId = crypto.randomUUID();
@@ -34,7 +39,7 @@
                         type: 'TILE_BLOB',
                         tileX, tileY, blobId,
                         buffer: buf
-                    }, '*', [buf]);
+                    }, WPLACE_ORIGIN, [buf]);
                 });
 
                 // Fallback: if extension doesn't respond in 2s, pass original through
@@ -57,7 +62,7 @@
 
         // --- Coord extraction (pixel placement endpoint) ---
         const params = new URLSearchParams(url.split('?')[1] || '');
-        const pathSegments = url.split('?')[0].split('/').filter(s => s && !isNaN(Number(s)));
+        const pathSegments = url.split('?')[0].split('/').filter(s => s && !isNaN(parseInt(s)));
         if (params.has('x') && params.has('y') && pathSegments.length >= 2) {
             const tileX = parseInt(pathSegments[pathSegments.length - 2]);
             const tileY = parseInt(pathSegments[pathSegments.length - 1]);
@@ -67,9 +72,9 @@
                 source: BRIDGE,
                 type: 'COORDS',
                 tileX, tileY, pixelX: px, pixelY: py,
-                worldX: tileX % 4 * 1000 + px,
-                worldY: tileY % 4 * 1000 + py
-            }, '*');
+                worldX: tileX % TILE_GRID_SIZE * TILE_SIZE + px,
+                worldY: tileY % TILE_GRID_SIZE * TILE_SIZE + py
+            }, WPLACE_ORIGIN);
         }
 
         return response;
@@ -102,7 +107,7 @@
             source: BRIDGE,
             type: 'SET_OVERLAY_ANCHOR',
             ...lastCoords
-        }, '*');
+        }, WPLACE_ORIGIN);
     }, true);
 
     console.log('[wplacer] overlay_inject loaded');

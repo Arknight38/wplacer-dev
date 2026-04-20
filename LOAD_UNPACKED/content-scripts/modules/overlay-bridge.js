@@ -1,6 +1,13 @@
 // content-scripts/modules/overlay-bridge.js
+// Use specific origin for postMessage security
+const WPLACE_ORIGIN = 'https://wplace.live';
+
 function setupOverlayBridge() {
     window.addEventListener('message', (event) => {
+        // Validate origin for security - only accept messages from wplace.live
+        if (event.origin !== WPLACE_ORIGIN && event.origin !== window.location.origin) {
+            return;
+        }
         if (event.source !== window) return;
         if (event.data?.source !== 'wplacer-overlay') return;
 
@@ -20,6 +27,12 @@ function setupOverlayBridge() {
                         worldX: msg.worldX,
                         worldY: msg.worldY
                     }
+                }).catch(err => {
+                    if (err.message.includes('Extension context invalidated')) {
+                        console.warn('[wplacer] Extension reloaded - page refresh required for overlay to work');
+                    } else {
+                        console.error('[wplacer] Failed to send coords:', err);
+                    }
                 });
                 break;
 
@@ -29,6 +42,12 @@ function setupOverlayBridge() {
                     action: 'setOverlayAnchor',
                     worldX: msg.worldX,
                     worldY: msg.worldY
+                }).catch(err => {
+                    if (err.message.includes('Extension context invalidated')) {
+                        console.warn('[wplacer] Extension reloaded - page refresh required for overlay to work');
+                    } else {
+                        console.error('[wplacer] Failed to set anchor:', err);
+                    }
                 });
                 break;
 
@@ -40,15 +59,21 @@ function setupOverlayBridge() {
                     tileY: msg.tileY,
                     blobId: msg.blobId,
                     buffer: msg.buffer
-                }, (response) => {
+                }).then((response) => {
                     console.log('[wplacer] Composited tile response:', response ? 'has buffer' : 'no buffer');
                     if (!response?.buffer) return;
-                    // Hand composited buffer back to page world
+                    // Hand composited buffer back to page world using specific origin
                     window.postMessage({
                         source: 'wplacer-overlay-response',
                         blobId: msg.blobId,
                         buffer: response.buffer
-                    }, '*', [response.buffer]);
+                    }, WPLACE_ORIGIN, [response.buffer]);
+                }).catch(err => {
+                    if (err.message && err.message.includes('Extension context invalidated')) {
+                        console.warn('[wplacer] Extension reloaded - page refresh required for overlay to work');
+                    } else {
+                        console.error('[wplacer] Failed to send tile blob:', err);
+                    }
                 });
                 break;
             }

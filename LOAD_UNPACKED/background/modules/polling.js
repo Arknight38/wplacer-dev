@@ -1,10 +1,10 @@
 // --- Polling Logic ---
-import { POLL_INTERVAL_MS, POLL_INTERVAL_IDLE_MS, IDLE_THRESHOLD_MS, lastActivityTime, isIdle, setLastActivityTime, setIsIdle, setPollInterval, setActivityCheckInterval, getPollInterval, getActivityCheckInterval } from './constants.js';
+import { POLL_INTERVAL_MS, POLL_INTERVAL_IDLE_MS, IDLE_THRESHOLD_MS, getLastActivityTime, getIsIdle, setLastActivityTime, setIsIdle, setPollInterval, setActivityCheckInterval, getPollInterval, getActivityCheckInterval } from './constants.js';
 import { pollForTokenRequest } from './token-refresh.js';
 
 export const updateActivityTime = () => {
     setLastActivityTime(Date.now());
-    if (isIdle) {
+    if (getIsIdle()) {
         setIsIdle(false);
         console.log("wplacer: Activity detected, switching to active polling");
         restartPolling();
@@ -12,9 +12,9 @@ export const updateActivityTime = () => {
 };
 
 export const checkIdleStatus = () => {
-    const idleTime = Date.now() - lastActivityTime;
+    const idleTime = Date.now() - getLastActivityTime();
 
-    if (!isIdle && idleTime > IDLE_THRESHOLD_MS) {
+    if (!getIsIdle() && idleTime > IDLE_THRESHOLD_MS) {
         setIsIdle(true);
         console.log("wplacer: No activity detected, switching to idle polling");
         restartPolling();
@@ -34,12 +34,21 @@ export const startPolling = () => {
 
     pollForTokenRequest();
 
-    const interval = isIdle ? POLL_INTERVAL_IDLE_MS : POLL_INTERVAL_MS;
+    // Use the shorter interval and dynamically check idle state in callback
+    // This allows immediate response to idle state changes without waiting for restartPolling()
     setPollInterval(setInterval(() => {
-        pollForTokenRequest();
-    }, interval));
+        // Dynamically check if we should poll based on idle state
+        // In idle mode, we only poll every Nth cycle based on interval ratio
+        const isCurrentlyIdle = getIsIdle();
+        const idleRatio = Math.floor(POLL_INTERVAL_IDLE_MS / POLL_INTERVAL_MS);
+        const shouldPoll = !isCurrentlyIdle || (Date.now() % POLL_INTERVAL_IDLE_MS < POLL_INTERVAL_MS);
 
-    console.log(`wplacer: Started polling every ${interval}ms (idle: ${isIdle})`);
+        if (shouldPoll) {
+            pollForTokenRequest();
+        }
+    }, POLL_INTERVAL_MS));
+
+    console.log(`wplacer: Started polling (base: ${POLL_INTERVAL_MS}ms, idle: ${POLL_INTERVAL_IDLE_MS}ms, current idle: ${getIsIdle()})`);
 
     setActivityCheckInterval(setInterval(checkIdleStatus, 30000));
 };
